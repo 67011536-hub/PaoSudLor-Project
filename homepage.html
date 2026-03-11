@@ -182,137 +182,77 @@
         </div>
     </main>
 
-    <!-- chart.js for graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const RATE = 8; // บาทต่อหน่วย
-        const params = new URLSearchParams(window.location.search);
-        const user = params.get('user') || 'unknown';
-        document.getElementById('userName').textContent = 'Tenant: ' + user;
-        
-        // due day is always the 10th of the following month
-        const DUE_DAY = 10; 
-        const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-        function refreshDueCard() {
-            const today = new Date();
-            // calculate due date as 10th of next month
-            const due = new Date(today.getFullYear(), today.getMonth() + 1, DUE_DAY);
-            const yearThai = due.getFullYear() + 543;
-            const shortYear = yearThai % 100; // two-digit
-            let text = `${DUE_DAY} ${thaiMonths[due.getMonth()]} ${shortYear}`;
-            if (today > due) {
-                text += ' (เกินกำหนดแล้ว)';
-            }
-            document.getElementById('cardDue').textContent = text;
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const RATE = 8; // บาทต่อหน่วย
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user') || 'unknown';
+    document.getElementById('userName').textContent = 'Tenant: ' + user;
+    
+    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    // 1. ฟังก์ชันดึงข้อมูลสรุป (Cards) และเลขมิเตอร์ล่าสุด
+    async function fetchDashboardData() {
+        try {
+            const resp = await fetch(`/api/meter-status?user=${encodeURIComponent(user)}`);
+            if (!resp.ok) throw new Error('Data not found');
+            const data = await resp.json();
+
+            // อัปเดตการ์ดด้านบน
+            document.getElementById('cardMeter').textContent = data.current_reading || 0;
+            document.getElementById('meterValue').textContent = (data.current_reading || 0) + ' kWh';
+            document.getElementById('cardUnits').textContent = (data.units_used || 0) + ' kWh';
+            document.getElementById('cardCost').textContent = ((data.units_used || 0) * RATE).toLocaleString() + ' ฿';
+        } catch (err) {
+            console.error('Error fetching dashboard:', err);
+            document.getElementById('meterValue').textContent = 'No data';
         }
-        refreshDueCard();
+    }
 
-        // ข้อมูลตัวอย่างแต่ละปี (ข้อมูลจำลอง)
-        const usageDataByYear = {
-            admin: {
-                2021: [110, 120, 105, 130, 125, 115, 140, 150, 145, 135, 120, 115],
-                2022: [115, 125, 110, 135, 130, 120, 145, 155, 150, 140, 125, 120],
-                2023: [118, 128, 112, 138, 133, 123, 148, 158, 153, 143, 128, 123],
-                2024: [120, 130, 115, 140, 135, 125, 150, 160, 155, 145, 130, 125],
-                2025: [122, 132, 117, 142, 137, 127, 152, 162, 157, 147, 132, 127],
-                2026: [120, 130, 110, 150, 140, 135, 145, 155, 160, 150, 140, 130]
-            },
-            tenant1: {
-                2021: [85, 90, 82, 95, 88, 92, 105, 110, 108, 100, 95, 90],
-                2022: [87, 92, 84, 97, 90, 94, 107, 112, 110, 102, 97, 92],
-                2023: [88, 93, 85, 98, 91, 95, 108, 113, 111, 103, 98, 93],
-                2024: [89, 94, 86, 99, 92, 96, 109, 114, 112, 104, 99, 94],
-                2025: [90, 95, 88, 100, 93, 97, 110, 115, 113, 105, 100, 95],
-                2026: [90, 95, 88, 100, 92, 98, 105, 110, 115, 108, 102, 99]
-            }
-        };
-
-        // มิเตอร์เริ่มต้นของแต่ละผู้ใช้แต่ละปี (สมมติ)
-        const startReadingByYear = {
-            admin: {
-                2021: 1000,
-                2022: 1845,
-                2023: 2700,
-                2024: 3568,
-                2025: 4450,
-                2026: 5330
-            },
-            tenant1: {
-                2021: 500,
-                2022: 1222,
-                2023: 1957,
-                2024: 2693,
-                2025: 3438,
-                2026: 4182
-            }
-        };
-
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const yearSelect = document.getElementById('yearSelect');
+    // 2. ฟังก์ชันดึงข้อมูลตารางและกราฟ (ดึงข้อมูลแยกตามปี)
+    async function updateTable() {
+        const selectedYear = document.getElementById('yearSelect').value;
+        const tbody = document.querySelector('#usageTable tbody');
         
-        function updateTable() {
-            const selectedYear = yearSelect.value;
-            const arr = usageDataByYear[user]?.[selectedYear] || [];
-            const startMeter = startReadingByYear[user]?.[selectedYear] || 0;
-            // if the year is the current year, only show data up through the previous month
-            const today = new Date();
-            let displayArr = arr;
-            if (parseInt(selectedYear, 10) === today.getFullYear()) {
-                displayArr = arr.slice(0, today.getMonth());
+        try {
+            // หมายเหตุ: ตรงนี้ต้องมี API รองรับที่ Server ด้วย
+            const resp = await fetch(`/api/usage-history?user=${encodeURIComponent(user)}&year=${selectedYear}`);
+            const history = await resp.json();
+
+            tbody.innerHTML = '';
+            if (history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No data for this year</td></tr>';
+                return;
             }
 
-            const tbody = document.querySelector('#usageTable tbody');
-            tbody.innerHTML = '';
-
-            // iterate through months in natural order (Jan first)
-            let cumulative = startMeter;
-            displayArr.forEach((kwh, i) => {
-                const start = cumulative;
-                const end = cumulative + kwh;
-                cumulative = end;
-
-                const cost = (kwh * RATE).toLocaleString();
+            history.forEach(row => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="month-cell">${months[i]} ${selectedYear}</td>
-                                <td>${start}</td>
-                                <td>${end}</td>
-                                <td>${kwh}</td>
-                                <td>${cost}</td>`;
+                tr.innerHTML = `
+                    <td class="month-cell">${row.month_name} ${selectedYear}</td>
+                    <td>${row.start_val}</td>
+                    <td>${row.end_val}</td>
+                    <td>${row.units}</td>
+                    <td>${(row.units * RATE).toLocaleString()}</td>
+                `;
                 tbody.appendChild(tr);
             });
-
-            if (arr.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No data available</td></tr>';
-            }
+            // (สามารถนำ data ไปวาด Chart.js ต่อได้ที่นี่)
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="5">Connect your Database on Render first</td></tr>';
         }
+    }
 
-        // ตั้งค่าปีปัจจุบันเป็น default และโหลดข้อมูล
-        yearSelect.value = '2026';
-        updateTable();
-        updateCards();
-        drawChart();
-        
-        // real‑time meter fetching (demo polling every 5 seconds)
-        async function fetchMeterReading() {
-            try {
-                // แทนที่ URL นี้ด้วย endpoint จริงของเซิร์ฟเวอร์
-                const resp = await fetch(`/api/meter?user=${encodeURIComponent(user)}`);
-                if (!resp.ok) throw new Error('Network response was not ok');
-                const data = await resp.json();
-                document.getElementById('meterValue').textContent = data.current || 'N/A';
-            } catch (err) {
-                console.warn('failed to fetch meter', err);
-                // สำหรับตัวอย่างจะสุ่มตัวเลขเพิ่มขึ้นเรื่อยๆ
-                const el = document.getElementById('meterValue');
-                const n = parseInt(el.textContent, 10) || startReadingByYear[user]?.[yearSelect.value] || 0;
-                el.textContent = n + Math.floor(Math.random()*5);
-            }
-        }
-        fetchMeterReading();
-        setInterval(fetchMeterReading, 5000);
-        
-        // เมื่อเปลี่ยนปี ให้อัปเดตตาราง
-        yearSelect.addEventListener('change', updateTable);
-    </script>
+    // ทำงานเมื่อโหลดหน้าเว็บ
+    document.getElementById('yearSelect').addEventListener('change', updateTable);
+    fetchDashboardData();
+    updateTable();
+    // Refresh เลขมิเตอร์ทุก 30 วินาที
+    setInterval(fetchDashboardData, 30000);
+
+    // ส่วนของปุ่ม Logout
+    document.querySelector('.logout a').href = 'sign in.html'; 
+</script>
 </body>
+
 </html>
