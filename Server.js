@@ -1,25 +1,24 @@
 const express = require('express');
-const { Pool } = require('pg'); // เปลี่ยนจาก mysql2 เป็น pg สำหรับ Render
+const { Pool } = require('pg'); 
 const cors = require('cors');
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// เชื่อมต่อกับ PostgreSQL ออนไลน์บน Render
-// ระบบจะดึงค่า DATABASE_URL มาให้อัตโนมัติเมื่อเราตั้งค่าในภายหลัง
+// เชื่อมต่อ PostgreSQL ออนไลน์ (ใช้ค่า DATABASE_URL จากหน้า Environment)
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
-        rejectUnauthorized: false // จำเป็นสำหรับการเชื่อมต่อฐานข้อมูลบน Cloud
+        rejectUnauthorized: false
     }
 });
 
 db.connect((err) => {
     if (err) {
-        console.error('❌ เชื่อมต่อ DB ออนไลน์ไม่สำเร็จ:', err.message);
+        console.error('❌ DB Connection Error:', err.message);
     } else {
-        console.log('✅ เชื่อมต่อ Database ออนไลน์สำเร็จแล้ว!');
+        console.log('✅ Connected to Online Database!');
     }
 });
 
@@ -38,10 +37,9 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// API สำหรับดึงข้อมูลสรุปหน่วยไฟและกำไร (สำหรับ Admin)
+// API สำหรับดึงข้อมูลรายงาน (Admin)
 app.get('/api/admin-report', async (req, res) => {
     try {
-        // ใน Postgres ชื่อ Table แนะนำให้เป็นตัวเล็กหมดจะปัญหาน้อยกว่าครับ
         const result = await db.query('SELECT * FROM admin_energy_report');
         if (result.rows.length > 0) {
             res.json(result.rows[0]);
@@ -53,8 +51,8 @@ app.get('/api/admin-report', async (req, res) => {
     }
 });
 
-// ส่วนสำคัญ: เปลี่ยน Port ให้รองรับ Render
+// ใช้ Port จาก Render หรือ 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
 });
