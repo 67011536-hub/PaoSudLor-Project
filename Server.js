@@ -109,6 +109,30 @@ app.get('/api/admin-report', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 4. API สำหรับรับข้อมูลมิเตอร์จากหน้า Admin
+app.post('/api/add-meter', async (req, res) => {
+    const { meterId, kwhValue } = req.body;
+    try {
+        // บันทึกค่าไฟลงตาราง
+        await db.query(
+            'INSERT INTO Meter_Readings (meter_id, reading_date, kwh_value) VALUES ($1, CURRENT_DATE, $2)',
+            [meterId, kwhValue]
+        );
+        
+        // สร้างบัญชีให้ผู้เช่าห้องนี้อัตโนมัติ (User: roomตามด้วยเลขห้อง / Pass: 1234)
+        await db.query(
+            `INSERT INTO users (username, password, role, meter_id) 
+             VALUES ($1, '1234', 'user', $2) 
+             ON CONFLICT (username) DO NOTHING`,
+            [`room${meterId}`, meterId]
+        );
+
+        res.json({ success: true, message: 'บันทึกสำเร็จ!' });
+    } catch (err) { 
+        res.status(500).json({ success: false, error: err.message }); 
+    }
+});
+
 // --- ส่วนของการส่งไฟล์หน้าเว็บ ---
 app.use(express.static(path.join(__dirname, '.')));
 
@@ -118,3 +142,4 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
+
