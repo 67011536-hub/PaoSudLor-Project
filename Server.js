@@ -7,6 +7,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ตั้งค่าเชื่อมต่อ Database
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -16,6 +17,53 @@ db.connect((err) => {
     if (err) console.error('❌ DB Error:', err.message);
     else console.log('✅ Connected to Postgres!');
 });
+
+// ==========================================
+// ส่วนที่เพิ่มใหม่: สร้างตารางอัตโนมัติเมื่อรัน Server
+// ==========================================
+const initDb = async () => {
+    try {
+        await db.query(`
+            -- 1. สร้างตารางเก็บข้อมูลผู้ใช้งาน (users)
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                password VARCHAR(50) NOT NULL,
+                role VARCHAR(20) DEFAULT 'user',
+                meter_id VARCHAR(20)
+            );
+
+            -- 2. สร้างตารางเก็บหน่วยก้านไฟฟ้า (Meter_Readings)
+            CREATE TABLE IF NOT EXISTS Meter_Readings (
+                id SERIAL PRIMARY KEY,
+                meter_id VARCHAR(20),
+                reading_date DATE,
+                kwh_value DECIMAL(10,2)
+            );
+
+            -- 3. สร้าง View สำหรับสรุปยอดให้หน้า Admin
+            CREATE OR REPLACE VIEW admin_energy_report AS
+            SELECT 
+                COALESCE(SUM(kwh_value), 0) AS total_units,
+                COALESCE(SUM(kwh_value) * 8, 0) AS income_from_tenants, -- เก็บผู้เช่าหน่วยละ 8 บาท
+                COALESCE(SUM(kwh_value) * 4.5, 0) AS cost_to_pea,       -- จ่ายการไฟฟ้าหน่วยละ 4.5 บาท
+                COALESCE((SUM(kwh_value) * 8) - (SUM(kwh_value) * 4.5), 0) AS profit
+            FROM Meter_Readings;
+
+            -- 4. สร้างบัญชี Admin เริ่มต้น (รหัสผ่าน 1234)
+            INSERT INTO users (username, password, role) 
+            VALUES ('admin', '1234', 'admin') 
+            ON CONFLICT (username) DO NOTHING;
+        `);
+        console.log('✅ Database tables and Admin created successfully!');
+    } catch (err) {
+        console.error('❌ Database init error:', err.message);
+    }
+};
+
+// เรียกใช้ฟังก์ชันสร้างตารางทันทีที่เปิด Server
+initDb();
+// ==========================================
 
 // 1. API สำหรับ Login
 app.post('/api/login', async (req, res) => {
