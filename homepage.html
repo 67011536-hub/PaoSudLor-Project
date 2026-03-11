@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Dashboard – Com Info</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card: #ffffff;
+            --primary: #3466af;
+            --accent1: #7360f2;
+            --accent2: #ff6b6b;
+            --accent3: #4caf50;
+            --accent4: #ff9800;
+            --radius: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,.08);
+            --text: #343a40;
+            --muted: #6c757d;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+        }
+        header {
+            background: var(--primary);
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+        main {
+            padding: 2rem;
+        }
+        .card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            color: #fff;
+            position: relative;
+        }
+        .stat h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        .stat .value {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-top: .5rem;
+        }
+        .stat.accent1 { background: var(--accent1); }
+        .stat.accent2 { background: var(--accent2); }
+        .stat.accent3 { background: var(--accent3); }
+        .stat.accent4 { background: var(--accent4); }
+        .filter-section {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .filter-section label {
+            font-weight: 500;
+        }
+        .filter-section select {
+            padding: .5rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: .5rem .75rem;
+            text-align: center;
+            vertical-align: top;
+        }
+        th {
+            background: var(--bg);
+            font-weight: 500;
+        }
+        .month-cell {
+            font-weight: 500;
+        }
+        .user-info {
+            font-size: .9rem;
+            color: var(--muted);
+        }
+        .logout {
+            font-size: .9rem;
+            color: #fff;
+            text-decoration: none;
+        }
+        .logout:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Com Info<span class="logout"><a href="index.html" class="logout">Logout</a></span></h1>
+    </header>
+    <main>
+        <!-- top summary cards -->
+        <div class="stats">
+            <div class="stat accent1">
+                <h3>This month's cost</h3>
+                <div class="value" id="cardCost">0 ฿</div>
+            </div>
+            <div class="stat accent2">
+                <h3>Due date</h3>
+                <div class="value" id="cardDue">ก่อนวันที่ 10</div>
+            </div>
+            <div class="stat accent3">
+                <h3>Units used</h3>
+                <div class="value" id="cardUnits">0 kWh</div>
+            </div>
+            <div class="stat accent4">
+                <h3>Current reading</h3>
+                <div class="value" id="cardMeter">0</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Monthly electricity usage</h2>
+            <div class="user-info" id="userName"></div>
+            
+            <!-- real‑time meter reading display -->
+            <div id="realTimeMeter" style="margin:1.5rem 0;">
+                <h3>Current meter reading</h3>
+                <p id="meterValue" class="muted">Loading...</p>
+            </div>
+            
+            <div class="filter-section">
+                <label for="yearSelect">Select Year:</label>
+                <select id="yearSelect">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                </select>
+            </div>
+
+            <canvas id="usageChart" style="max-width:100%;height:250px; margin-top:1rem;"></canvas>
+
+            <table id="usageTable">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Meter start</th>
+                        <th>Meter end</th>
+                        <th>Units (kWh)</th>
+                        <th>Cost (฿)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const RATE = 8; // บาทต่อหน่วย
+        const params = new URLSearchParams(window.location.search);
+        const user = params.get('user') || 'unknown';
+        document.getElementById('userName').textContent = 'Tenant: ' + user;
+        
+        // due day is always the 10th of the following month
+        const DUE_DAY = 10; 
+        const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+        function refreshDueCard() {
+            const today = new Date();
+            // calculate due date as 10th of next month
+            const due = new Date(today.getFullYear(), today.getMonth() + 1, DUE_DAY);
+            const yearThai = due.getFullYear() + 543;
+            const shortYear = yearThai % 100; // two-digit
+            let text = `${DUE_DAY} ${thaiMonths[due.getMonth()]} ${shortYear}`;
+            if (today > due) {
+                text += ' (เกินกำหนดแล้ว)';
+            }
+            document.getElementById('cardDue').textContent = text;
+        }
+        refreshDueCard();
+
+        // ข้อมูลตัวอย่างแต่ละปี (ข้อมูลจำลอง)
+        const usageDataByYear = {
+            admin: {
+                2021: [110, 120, 105, 130, 125, 115, 140, 150, 145, 135, 120, 115],
+                2022: [115, 125, 110, 135, 130, 120, 145, 155, 150, 140, 125, 120],
+                2023: [118, 128, 112, 138, 133, 123, 148, 158, 153, 143, 128, 123],
+                2024: [120, 130, 115, 140, 135, 125, 150, 160, 155, 145, 130, 125],
+                2025: [122, 132, 117, 142, 137, 127, 152, 162, 157, 147, 132, 127],
+                2026: [120, 130, 110, 150, 140, 135, 145, 155, 160, 150, 140, 130]
+            },
+            tenant1: {
+                2021: [85, 90, 82, 95, 88, 92, 105, 110, 108, 100, 95, 90],
+                2022: [87, 92, 84, 97, 90, 94, 107, 112, 110, 102, 97, 92],
+                2023: [88, 93, 85, 98, 91, 95, 108, 113, 111, 103, 98, 93],
+                2024: [89, 94, 86, 99, 92, 96, 109, 114, 112, 104, 99, 94],
+                2025: [90, 95, 88, 100, 93, 97, 110, 115, 113, 105, 100, 95],
+                2026: [90, 95, 88, 100, 92, 98, 105, 110, 115, 108, 102, 99]
+            }
+        };
+
+        // มิเตอร์เริ่มต้นของแต่ละผู้ใช้แต่ละปี (สมมติ)
+        const startReadingByYear = {
+            admin: {
+                2021: 1000,
+                2022: 1845,
+                2023: 2700,
+                2024: 3568,
+                2025: 4450,
+                2026: 5330
+            },
+            tenant1: {
+                2021: 500,
+                2022: 1222,
+                2023: 1957,
+                2024: 2693,
+                2025: 3438,
+                2026: 4182
+            }
+        };
+
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const yearSelect = document.getElementById('yearSelect');
+        
+        function updateTable() {
+            const selectedYear = yearSelect.value;
+            const arr = usageDataByYear[user]?.[selectedYear] || [];
+            const startMeter = startReadingByYear[user]?.[selectedYear] || 0;
+            // if the year is the current year, only show data up through the previous month
+            const today = new Date();
+            let displayArr = arr;
+            if (parseInt(selectedYear, 10) === today.getFullYear()) {
+                displayArr = arr.slice(0, today.getMonth());
+            }
+
+            const tbody = document.querySelector('#usageTable tbody');
+            tbody.innerHTML = '';
+
+            // iterate through months in natural order (Jan first)
+            let cumulative = startMeter;
+            displayArr.forEach((kwh, i) => {
+                const start = cumulative;
+                const end = cumulative + kwh;
+                cumulative = end;
+
+                const cost = (kwh * RATE).toLocaleString();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="month-cell">${months[i]} ${selectedYear}</td>
+                                <td>${start}</td>
+                                <td>${end}</td>
+                                <td>${kwh}</td>
+                                <td>${cost}</td>`;
+                tbody.appendChild(tr);
+            });
+
+            if (arr.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No data available</td></tr>';
+            }
+        }
+
+        // ตั้งค่าปีปัจจุบันเป็น default และโหลดข้อมูล
+        yearSelect.value = '2026';
+        updateTable();
+        updateCards();
+        drawChart();
+        
+        // real‑time meter fetching (demo polling every 5 seconds)
+        async function fetchMeterReading() {
+            try {
+                // แทนที่ URL นี้ด้วย endpoint จริงของเซิร์ฟเวอร์
+                const resp = await fetch(`/api/meter?user=${encodeURIComponent(user)}`);
+                if (!resp.ok) throw new Error('Network response was not ok');
+                const data = await resp.json();
+                document.getElementById('meterValue').textContent = data.current || 'N/A';
+            } catch (err) {
+                console.warn('failed to fetch meter', err);
+                // สำหรับตัวอย่างจะสุ่มตัวเลขเพิ่มขึ้นเรื่อยๆ
+                const el = document.getElementById('meterValue');
+                const n = parseInt(el.textContent, 10) || startReadingByYear[user]?.[yearSelect.value] || 0;
+                el.textContent = n + Math.floor(Math.random()*5);
+            }
+        }
+        fetchMeterReading();
+        setInterval(fetchMeterReading, 5000);
+        
+        // เมื่อเปลี่ยนปี ให้อัปเดตตาราง
+        yearSelect.addEventListener('change', updateTable);
+    </script>
+</body>
+</html>

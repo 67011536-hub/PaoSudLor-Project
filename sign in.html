@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login – Com Info</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card: #ffffff;
+            --primary: #3466af;
+            --primary-hover: #234a86;
+            --text: #343a40;
+            --muted: #6c757d;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,.1);
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text);
+        }
+        .card {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 320px;
+        }
+        h2 {
+            margin: 0 0 1.5rem;
+            text-align: center;
+            font-weight: 400;
+        }
+        label {
+            display: block;
+            margin: .5rem 0 .25rem;
+            font-size: .9rem;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: .6rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: .7rem;
+            margin-top: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        button:hover { background: var(--primary-hover); }
+        .message {
+            margin-top: .75rem;
+            color: red;
+            text-align: center;
+            font-size: .9rem;
+        }
+        .links {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: .85rem;
+            color: var(--muted);
+        }
+        .links a {
+            color: var(--primary);
+            text-decoration: none;
+            margin: 0 .3rem;
+        }
+        .links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Sign in</h2>
+        <form id="loginForm">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required />
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required />
+
+            <button type="submit">Login</button>
+        </form>
+        <div class="message" id="message"></div>
+        <div class="links">
+            <a href="#">Forgot password?</a> |
+            <a href="#">Register</a>
+        </div>
+    </div>
+
+    <script>
+        // ข้อมูล user (สมมติ - ในระบบจริงจะเรียก API)
+        const users = {
+            admin: { password: '1234', role: 'admin' },
+            tenant1: { password: '1234', role: 'user' },
+            tenant2: { password: '1234', role: 'user' }
+        };
+
+        document.getElementById('loginForm').addEventListener('submit', function(evt) {
+            evt.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const user = users[username];
+
+            if (user && user.password === password) {
+                // ตรวจสอบ role แล้วเด้งไปหน้าตามสัญชาติ
+                if (user.role === 'admin') {
+                    window.location.href = 'adminpage.html?user=' + encodeURIComponent(username);
+                } else {
+                    window.location.href = 'homepage.html?user=' + encodeURIComponent(username);
+                }
+            } else {
+                document.getElementById('message').textContent = 'Incorrect username or password';
+            }
+        });
+
+        function updateTable() {
+            // ตัวเลือกปี/เดือน/ตึก/ชั้นเหมือนเดิม
+
+            let totalUnits = 0;
+            let totalRevenue = 0;
+            for (const room of roomData[selectedBuilding][selectedFloor].rooms) {
+                const kwh = room.kwh;
+                const costValue = kwh * RATE;
+                totalUnits += kwh;
+                totalRevenue += costValue;
+            }
+
+            // อัปเดตสรุป
+            document.getElementById('totalUnits').textContent = totalUnits;
+            document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString();
+            window.currentTotals = { units: totalUnits, revenue: totalRevenue };
+        }
+
+        function calculateProfit() {
+            const actual = parseFloat(document.getElementById('actualCost').value) || 0;
+            const rev = window.currentTotals?.revenue || 0;
+            const profit = rev - actual;
+            const profitElem = document.getElementById('profit');
+            profitElem.textContent = profit.toLocaleString();
+            profitElem.style.color = profit < 0 ? 'red' : 'green';
+        }
+    </script>
+</body>
+</html>

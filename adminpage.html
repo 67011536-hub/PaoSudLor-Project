@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Dashboard – Com Info</title>
+    <style>
+        :root {
+            --bg: #f7f8fa;
+            --card: #ffffff;
+            --primary: #3466af;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,.1);
+            --text: #343a40;
+            --muted: #6c757d;
+            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+        }
+        header {
+            background: var(--primary);
+            color: #fff;
+            padding: 1rem 2rem;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 400;
+        }
+        main {
+            padding: 2rem;
+        }
+        .card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .filter-section {
+            margin-bottom: 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .filter-group label {
+            font-weight: 500;
+            margin-bottom: .25rem;
+            font-size: .9rem;
+        }
+        .filter-group select {
+            padding: .5rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        button.filter-btn {
+            padding: .5rem 1rem;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button.filter-btn:hover {
+            background: #234a86;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1rem;
+            font-size: .9rem;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: .5rem .75rem;
+            text-align: center;
+            vertical-align: top;
+        }
+        th {
+            background: var(--bg);
+            font-weight: 500;
+        }
+        .logout {
+            float: right;
+            font-size: .9rem;
+            color: #fff;
+            text-decoration: none;
+        }
+        .logout:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Com Info – Admin<span class="logout"><a href="index.html" class="logout">Logout</a></span></h1>
+    </header>
+    <main>
+        <div class="card">
+            <h2>Building Electricity Usage Report</h2>
+
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label for="yearSelect">Year:</label>
+                    <select id="yearSelect">
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                        <option value="2021">2021</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="monthSelect">Month:</label>
+                    <select id="monthSelect">
+                        <option value="0">January</option>
+                        <option value="1">February</option>
+                        <option value="2">March</option>
+                        <option value="3">April</option>
+                        <option value="4">May</option>
+                        <option value="5">June</option>
+                        <option value="6">July</option>
+                        <option value="7">August</option>
+                        <option value="8">September</option>
+                        <option value="9">October</option>
+                        <option value="10">November</option>
+                        <option value="11">December</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="buildingSelect">Building:</label>
+                    <select id="buildingSelect">
+                        <option value="A">Building A</option>
+                        <option value="B">Building B</option>
+                        <option value="C">Building C</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="floorSelect">Floor:</label>
+                    <select id="floorSelect">
+                        <option value="1">Floor 1</option>
+                        <option value="2">Floor 2</option>
+                        <option value="3">Floor 3</option>
+                        <option value="4">Floor 4</option>
+                        <option value="5">Floor 5</option>
+                    </select>
+                </div>
+
+                <button class="filter-btn" onclick="updateTable()">Apply Filter</button>
+            </div>
+
+            <div id="rateSection" style="margin-bottom:1rem; font-size:.9rem;">
+                <label for="providerRate">Utility Rate (฿/kWh):</label>
+                <input type="number" id="providerRate" value="4.5" min="0" step="any" style="width:80px; margin-left:.5rem;" />
+                <button class="filter-btn" style="margin-left:.5rem;" onclick="updateTable()">Recalculate</button>
+            </div>
+
+            <table id="usageTable">
+                <thead>
+                    <tr>
+                        <th>Building</th>
+                        <th>Floor</th>
+                        <th>Room</th>
+                        <th>Meter start</th>
+                        <th>Meter end</th>
+                        <th>Units (kWh)</th>
+                        <th>Tenant Cost (฿)</th>
+                        <th>Provider Cost (฿)</th>
+                        <th>Profit (฿)</th>
+                        <th>Paid?</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+
+        </div>
+    </main>
+
+    <script>
+        const RATE = 8; // บาทต่อหน่วย
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        // ข้อมูลห้องสำหรับแต่ละตึกและชั้น (10 ห้องต่อชั้น)
+        const roomData = {
+            A: {
+                1: { rooms: ['101', '102', '103', '104', '105', '106', '107', '108', '109', '110'] },
+                2: { rooms: ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210'] },
+                3: { rooms: ['301', '302', '303', '304', '305', '306', '307', '308', '309', '310'] },
+                4: { rooms: ['401', '402', '403', '404', '405', '406', '407', '408', '409', '410'] },
+                5: { rooms: ['501', '502', '503', '504', '505', '506', '507', '508', '509', '510'] }
+            },
+            B: {
+                1: { rooms: ['101', '102', '103', '104', '105', '106', '107', '108', '109', '110'] },
+                2: { rooms: ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210'] },
+                3: { rooms: ['301', '302', '303', '304', '305', '306', '307', '308', '309', '310'] },
+                4: { rooms: ['401', '402', '403', '404', '405', '406', '407', '408', '409', '410'] },
+                5: { rooms: ['501', '502', '503', '504', '505', '506', '507', '508', '509', '510'] }
+            },
+            C: {
+                1: { rooms: ['101', '102', '103', '104', '105', '106', '107', '108', '109', '110'] },
+                2: { rooms: ['201', '202', '203', '204', '205', '206', '207', '208', '209', '210'] },
+                3: { rooms: ['301', '302', '303', '304', '305', '306', '307', '308', '309', '310'] },
+                4: { rooms: ['401', '402', '403', '404', '405', '406', '407', '408', '409', '410'] },
+                5: { rooms: ['501', '502', '503', '504', '505', '506', '507', '508', '509', '510'] }
+            }
+        };
+
+        // ข้อมูลการใช้ไฟฟ้า (สมมติ)
+        const usageDatabase = {};
+
+        // สร้างข้อมูลจำลอง
+        function generateMockData() {
+            for (const building in roomData) {
+                usageDatabase[building] = usageDatabase[building] || {};
+                for (const floor in roomData[building]) {
+                    usageDatabase[building][floor] = usageDatabase[building][floor] || {};
+                    for (const room of roomData[building][floor].rooms) {
+                        usageDatabase[building][floor][room] = usageDatabase[building][floor][room] || {};
+                        for (let year = 2021; year <= 2026; year++) {
+                            usageDatabase[building][floor][room][year] = usageDatabase[building][floor][room][year] || [];
+                            for (let m = 0; m < 12; m++) {
+                                const baseUsage = Math.floor(Math.random() * 50) + 80;
+                                usageDatabase[building][floor][room][year][m] = baseUsage;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        generateMockData();
+
+        // store payment checkbox state per unique record (building-floor-room-year-month)
+        const paymentStatus = {};
+
+        function updateTable() {
+            const selectedYear = document.getElementById('yearSelect').value;
+            const selectedMonth = parseInt(document.getElementById('monthSelect').value);
+            const selectedBuilding = document.getElementById('buildingSelect').value;
+            const selectedFloor = document.getElementById('floorSelect').value;
+
+            const tbody = document.querySelector('#usageTable tbody');
+            tbody.innerHTML = '';
+
+            let meterCounter = 1000; // เลขมิเตอร์เริ่มต้น
+            let totalUnits = 0;
+            let totalRevenue = 0;
+            let totalProviderCost = 0;
+            let totalProfit = 0;
+
+            // read provider rate from interactive field
+            const providerRateVal = parseFloat(document.getElementById('providerRate').value) || 0;
+            for (const room of roomData[selectedBuilding][selectedFloor].rooms) {
+                const kwh = usageDatabase[selectedBuilding][selectedFloor][room][selectedYear]?.[selectedMonth] || 0;
+                const start = meterCounter;
+                const end = meterCounter + kwh;
+                meterCounter = end;
+
+                const tenantCost = kwh * RATE;
+                const providerCost = kwh * providerRateVal;
+                const profitRow = tenantCost - providerCost;
+
+                // accumulate totals for overall summary
+                totalUnits += kwh;
+                totalRevenue += tenantCost;
+                totalProviderCost += providerCost;
+                totalProfit += profitRow;
+
+                const tenantStr = tenantCost.toLocaleString();
+                const providerStr = providerCost.toLocaleString();
+                const profitStr = profitRow.toLocaleString();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${selectedBuilding}</td>
+                                <td>${selectedFloor}</td>
+                                <td>${room}</td>
+                                <td>${start}</td>
+                                <td>${end}</td>
+                                <td>${kwh}</td>
+                                <td>${tenantStr}</td>
+                                <td>${providerStr}</td>
+                                <td style="color:${profitRow<0?'red':'green'}">${profitStr}</td>
+                                <td><input type="checkbox" class="paid-checkbox" /></td>`;
+                tbody.appendChild(tr);
+                // restore checkbox state if previously set
+                const key = `${selectedBuilding}-${selectedFloor}-${room}-${selectedYear}-${selectedMonth}`;
+                const checkbox = tr.querySelector('.paid-checkbox');
+                if (paymentStatus[key]) {
+                    checkbox.checked = true;
+                }
+                checkbox.addEventListener('change', () => {
+                    paymentStatus[key] = checkbox.checked;
+                });
+            }
+
+
+            if (tbody.innerHTML === '') {
+                tbody.innerHTML = '<tr><td colspan="10">No data available</td></tr>';
+            } else {
+                // add grand total row at bottom
+                const grandTr = document.createElement('tr');
+                grandTr.innerHTML = `<td colspan="5"><strong>Grand Total</strong></td>
+                                     <td><strong>${totalUnits}</strong></td>
+                                     <td><strong>${totalRevenue.toLocaleString()}</strong></td>
+                                     <td><strong>${totalProviderCost.toLocaleString()}</strong></td>
+                                     <td style="color:${totalProfit<0?'red':'green'}"><strong>${totalProfit.toLocaleString()}</strong></td>
+                                     <td></td>`;
+                tbody.appendChild(grandTr);
+            }
+        }
+
+
+        // โหลดข้อมูลครั้งแรก
+        document.getElementById('yearSelect').value = '2026';
+        document.getElementById('monthSelect').value = '0';
+        document.getElementById('buildingSelect').value = 'A';
+        document.getElementById('floorSelect').value = '1';
+        updateTable();
+    </script>
+</body>
+</html>
