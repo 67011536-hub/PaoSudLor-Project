@@ -25,6 +25,9 @@
             background: var(--primary);
             color: #fff;
             padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         header h1 {
             margin: 0;
@@ -40,12 +43,12 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             max-width: 900px;
-            margin: 0 auto;
+            margin: 0 auto 1.5rem auto;
         }
         .filter-section {
             margin-bottom: 1.5rem;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 1rem;
             align-items: end;
         }
@@ -58,7 +61,7 @@
             margin-bottom: .25rem;
             font-size: .9rem;
         }
-        .filter-group select {
+        .filter-group select, .filter-group input {
             padding: .5rem;
             border: 1px solid #ccc;
             border-radius: var(--radius);
@@ -73,9 +76,8 @@
             cursor: pointer;
             font-size: 1rem;
         }
-        button.filter-btn:hover {
-            background: #234a86;
-        }
+        button.filter-btn:hover { background: #234a86; }
+        
         table {
             border-collapse: collapse;
             width: 100%;
@@ -86,162 +88,90 @@
             border: 1px solid #dee2e6;
             padding: .5rem .75rem;
             text-align: center;
-            vertical-align: top;
         }
         th {
             background: var(--bg);
             font-weight: 500;
         }
         .logout {
-            float: right;
-            font-size: .9rem;
             color: #fff;
             text-decoration: none;
+            font-size: .9rem;
         }
         .logout:hover { text-decoration: underline; }
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>Com Info – Admin<span class="logout"><a href="index.html" class="logout">Logout</a></span></h1>
-        </header>
-        <main>
-            <div class="card">
-                <h2>Building Electricity Usage Report</h2>
-    
-                <div class="filter-section">
-                    <div class="filter-group">
-                        <label for="yearSelect">Year:</label>
-                        <select id="yearSelect">
-                            <option value="2026">2026</option>
-                            <option value="2025">2025</option>
-                            <option value="2024">2024</option>
-                            <option value="2023">2023</option>
-                            <option value="2022">2022</option>
-                            <option value="2021">2021</option>
-                        </select>
-                    </div>
-    
-                    <div class="filter-group">
-                        <label for="monthSelect">Month:</label>
-                        <select id="monthSelect">
-                            <option value="0">January</option>
-                            <option value="1">February</option>
-                            <option value="2">March</option>
-                            <option value="3">April</option>
-                            <option value="4">May</option>
-                            <option value="5">June</option>
-                            <option value="6">July</option>
-                            <option value="7">August</option>
-                            <option value="8">September</option>
-                            <option value="9">October</option>
-                            <option value="10">November</option>
-                            <option value="11">December</option>
-                        </select>
-                    </div>
-    
-                    <div class="filter-group">
-                        <label for="buildingSelect">Building:</label>
-                        <select id="buildingSelect">
-                            <option value="A">Building A</option>
-                            <option value="B">Building B</option>
-                            <option value="C">Building C</option>
-                        </select>
-                    </div>
-    
-                    <div class="filter-group">
-                        <label for="floorSelect">Floor:</label>
-                        <select id="floorSelect">
-                            <option value="1">Floor 1</option>
-                            <option value="2">Floor 2</option>
-                            <option value="3">Floor 3</option>
-                            <option value="4">Floor 4</option>
-                            <option value="5">Floor 5</option>
-                        </select>
-                    </div>
-    
-                    <button class="filter-btn" onclick="updateTable()">Apply Filter</button>
+        .profit-pos { color: green; font-weight: bold; }
+        .profit-neg { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Com Info – Admin Control</h1>
+        <a href="sign in.html" class="logout">Logout</a>
+    </header>
+    <main>
+        <div class="card">
+            <h2>Building Usage Summary</h2>
+            <p style="font-size: 0.85rem; color: var(--muted);">Data pulled from PostgreSQL on Render</p>
+            <table id="usageTable">
+                <thead>
+                    <tr>
+                        <th>Total Units (kWh)</th>
+                        <th>Income (Tenants)</th>
+                        <th>Cost (PEA)</th>
+                        <th>Net Profit</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryBody">
+                    <tr><td colspan="4">Loading data...</td></tr>
+                </tbody>
+            </table>
+            <button class="filter-btn" style="margin-top: 1rem;" onclick="fetchAdminSummary()">Refresh Report</button>
+        </div>
+
+        <div class="card">
+            <h3>Add Monthly Reading</h3>
+            <div class="filter-section">
+                <div class="filter-group">
+                    <label>Meter ID (Room)</label>
+                    <input type="number" id="meterIdInput" placeholder="e.g. 101">
                 </div>
-    
-                <div id="rateSection" style="margin-bottom:1rem; font-size:.9rem;">
-                    <label for="providerRate">Utility Rate (฿/kWh):</label>
-                    <input type="number" id="providerRate" value="4.5" min="0" step="any" style="width:80px; margin-left:.5rem;" />
-                    <button class="filter-btn" style="margin-left:.5rem;" onclick="updateTable()">Recalculate</button>
+                <div class="filter-group">
+                    <label>Current Reading (kWh)</label>
+                    <input type="number" id="meterValInput" placeholder="e.g. 1250">
                 </div>
-    
-                <table id="usageTable">
-                    <thead>
-                        <tr>
-                            <th>Building</th>
-                            <th>Floor</th>
-                            <th>Room</th>
-                            <th>Meter start</th>
-                            <th>Meter end</th>
-                            <th>Units (kWh)</th>
-                            <th>Tenant Cost (฿)</th>
-                            <th>Provider Cost (฿)</th>
-                            <th>Profit (฿)</th>
-                            <th>Paid?</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-    
+                <button class="filter-btn" onclick="alert('This feature requires an INSERT API on your server.')">Save Reading</button>
             </div>
-        </main>
-    
+        </div>
+    </main>
+
     <script>
-        const RATE = 8; // ราคาที่เก็บจากผู้เช่า (บาท/หน่วย)
-        
-        // 1. ฟังก์ชันดึงข้อมูลสรุปภาพรวมจาก Database จริง
+        // ฟังก์ชันดึงข้อมูลจาก API /api/admin-report ใน Server.js
         async function fetchAdminSummary() {
             try {
                 const resp = await fetch('/api/admin-report');
                 const data = await resp.json();
                 
-                // นำข้อมูลจาก DB มาแสดงในตาราง (แถวสรุป)
-                // หมายเหตุ: ในฐานข้อมูลจริง ข้อมูลจะถูกคำนวณมาให้แล้วจาก View: admin_energy_report
-                updateTableUI(data);
+                const tbody = document.getElementById('summaryBody');
+                tbody.innerHTML = '';
+
+                const tr = document.createElement('tr');
+                const profitClass = data.profit >= 0 ? 'profit-pos' : 'profit-neg';
+                
+                tr.innerHTML = `
+                    <td>${data.total_units || 0}</td>
+                    <td>${(data.income_from_tenants || 0).toLocaleString()} ฿</td>
+                    <td>${(data.cost_to_pea || 0).toLocaleString()} ฿</td>
+                    <td class="${profitClass}">${(data.profit || 0).toLocaleString()} ฿</td>
+                `;
+                tbody.appendChild(tr);
             } catch (err) {
-                console.error('Error fetching admin report:', err);
+                console.error('Fetch Error:', err);
+                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:red;">Error connecting to API</td></tr>';
             }
         }
-    
-        // 2. ฟังก์ชันอัปเดต UI ตาราง (ปรับให้รับข้อมูลจาก API)
-        function updateTableUI(summaryData) {
-            const tbody = document.querySelector('#usageTable tbody');
-            tbody.innerHTML = '';
-    
-            // แสดงแถวข้อมูลภาพรวม (ตัวอย่างดึงจากฐานข้อมูล)
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>All</td>
-                <td>All</td>
-                <td>Summary</td>
-                <td>-</td>
-                <td>-</td>
-                <td>${summaryData.total_units || 0}</td>
-                <td>${(summaryData.income_from_tenants || 0).toLocaleString()}</td>
-                <td>${(summaryData.cost_to_pea || 0).toLocaleString()}</td>
-                <td style="color:${summaryData.profit < 0 ? 'red' : 'green'}">
-                    <strong>${(summaryData.profit || 0).toLocaleString()}</strong>
-                </td>
-                <td>✅</td>
-            `;
-            tbody.appendChild(tr);
-        }
-    
-        // ฟังก์ชัน Logout แก้ทางไปไฟล์ sign in
-        document.querySelector('.logout a').href = 'sign in.html';
-    
-        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ
-        fetchAdminSummary();
-    
-        // ส่วนของ Filter (ในเวอร์ชันเริ่มต้นนี้จะเรียกข้อมูลสรุปรวมมาแสดงก่อน)
-        function updateTable() {
-            fetchAdminSummary();
-        }
-        </script>
-</body>
 
+        // โหลดข้อมูลทันทีที่เปิดหน้า
+        window.onload = fetchAdminSummary;
+    </script>
+</body>
 </html>
