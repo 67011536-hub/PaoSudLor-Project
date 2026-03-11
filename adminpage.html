@@ -163,11 +163,17 @@
                 data.forEach(room => {
                     const tr = document.createElement('tr');
                     
-                    // 🌟 เช็คเงื่อนไขเมคค่า: ถ้าเลขห้องตรงกับที่ตั้งไว้ ให้ขึ้น UNPAID
+                    // 🌟 เช็คเงื่อนไขการแสดงป้ายสถานะ
                     let statusHtml = '';
-                    if (unpaidRooms.includes(room.room_number)) {
+                    
+                    if (room.tenant_name === 'ว่าง' || !room.tenant_name) {
+                        // 1. ถ้าเป็นห้องว่าง ให้แสดงแค่ขีด (-) สีเทา
+                        statusHtml = '<span style="color: #aaa; font-style: italic;">-</span>';
+                    } else if (unpaidRooms.includes(room.room_number)) {
+                        // 2. ถ้าตรงกับเลขห้องที่เซ็ตไว้ ให้ขึ้น UNPAID
                         statusHtml = '<span class="badge-unpaid">UNPAID</span>';
                     } else {
+                        // 3. ห้องอื่นๆ ที่มีคนอยู่ ให้ขึ้น PAID
                         statusHtml = '<span class="badge-paid">PAID</span>';
                     }
 
@@ -177,7 +183,8 @@
                         <td>${room.current_reading}</td>
                         <td>${room.units_used}</td>
                         <td>${(room.units_used * 8).toLocaleString()} ฿</td>
-                        <td>${statusHtml}</td> `;
+                        <td>${statusHtml}</td> 
+                    `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
@@ -223,3 +230,4 @@
     </script>
 </body>
 </html>
+
