@@ -19,22 +19,15 @@ db.connect((err) => {
 });
 
 // ==========================================
-// ส่วนจัดการ Database + ยัดข้อมูลผู้เช่า 37 ห้อง
+// ส่วนจัดการ Database + บังคับยัดข้อมูล 37 ห้อง
 // ==========================================
 const initDb = async () => {
     try {
-        // 1. ตรวจสอบว่าต้องลงข้อมูลจำลองหรือไม่ 
-        let shouldSeed = false;
-        try {
-            const check = await db.query("SELECT COUNT(*) FROM users");
-            if (parseInt(check.rows[0].count) <= 2) shouldSeed = true; // ถ้ามีแค่แอดมิน ให้รีเซ็ตใหม่
-        } catch (e) {
-            shouldSeed = true; // ถ้าเพิ่งรันครั้งแรก
-        }
+        // ⚠️ บังคับเป็น TRUE เสมอ เพื่อให้ล้างข้อมูลเก่าทิ้งทั้งหมดและยัดข้อมูลใหม่ 100%
+        let shouldSeed = true; 
 
-        // ล้างกระดานเพื่อลงข้อมูลจากไฟล์ SQL ต้นฉบับ
         if (shouldSeed) {
-            console.log("🧹 Clearing old data to seed 37 users...");
+            console.log("🧹 Forcing clear old data to seed 37 users...");
             await db.query(`
                 DROP TABLE IF EXISTS Payments CASCADE;
                 DROP TABLE IF EXISTS Bills CASCADE;
@@ -47,7 +40,7 @@ const initDb = async () => {
             `);
         }
 
-        // 2. สร้างโครงสร้างตาราง
+        // สร้างโครงสร้างตาราง
         await db.query(`
             CREATE TABLE IF NOT EXISTS users (
                 user_id SERIAL PRIMARY KEY,
@@ -144,16 +137,14 @@ const initDb = async () => {
             FOR EACH ROW EXECUTE FUNCTION calculate_late_fee();
         `);
 
-        // 3. ยัดข้อมูลจำลอง 37 ห้อง
+        // ยัดข้อมูลจำลอง 37 ห้อง
         if (shouldSeed) {
-            console.log('🌱 Seeding 37 Users and Meter Readings...');
+            console.log('🌱 Forcing Seed: 37 Users and Meter Readings...');
             
             await db.query(`INSERT INTO users (name, role, username, password_hash) VALUES ('Admin', 'Admin', 'admin', '1234');`);
 
-            // ดึงรายชื่อจากไฟล์ ของจริ้ง.sql
             const tenantNames = ['Somchai','Suda','Anan','Pim','Niran','Malee','Krit','Dao','Manop','Nok','Prasit','Chan','Wipa','Sakda','Arisa','Tawin','Kanya','Phon','Siri','Napat','Preecha','Orn','Chai','Ploy','Veera','Mint','Thanakorn','Ying','Somsak','Nicha','Wichai','Fon','Korn','Jane','Tom','Aom','Pimnara'];
             
-            // สร้าง Users ผู้เช่า
             let usersInsert = "INSERT INTO users (name, role, username, password_hash) VALUES ";
             let userVals = [];
             for(let i=0; i<37; i++) {
@@ -162,7 +153,6 @@ const initDb = async () => {
             }
             await db.query(usersInsert + userVals.join(', ') + ";");
 
-            // สร้าง Meters & Rooms (40 ห้อง)
             let meterVals = [];
             let roomVals = [];
             let roomId = 101;
@@ -181,18 +171,16 @@ const initDb = async () => {
             await db.query("INSERT INTO Meters (serial_number, install_date) VALUES " + meterVals.join(', ') + ";");
             await db.query("INSERT INTO Rooms (room_number, floor, status, meter_id) VALUES " + roomVals.join(', ') + ";");
 
-            // สร้าง Contracts (สัญญาเช่า 37 ห้อง)
             let contractVals = [];
             for(let i=1; i<=37; i++) {
                 contractVals.push(`(${i+1}, ${i}, '2026-01-01')`);
             }
             await db.query("INSERT INTO Contracts (user_id, room_id, start_date) VALUES " + contractVals.join(', ') + ";");
 
-            // สร้างประวัติการจดมิเตอร์ (จำลองการใช้ไฟของทั้ง 37 ห้อง)
             let readingVals = [];
             for(let i=1; i<=37; i++) {
-                const startVal = Math.floor(Math.random() * 50) + 1; // สุ่มเลขต้นเดือน
-                const usage = Math.floor(Math.random() * 150) + 80;  // สุ่มใช้ไฟไป 80-230 หน่วย
+                const startVal = Math.floor(Math.random() * 50) + 1; 
+                const usage = Math.floor(Math.random() * 150) + 80;  
                 const endVal = startVal + usage;
 
                 readingVals.push(`(${i}, ${startVal}, '2026-01-01')`);
@@ -200,9 +188,7 @@ const initDb = async () => {
             }
             await db.query("INSERT INTO Meter_Readings (meter_id, kwh_value, reading_date) VALUES " + readingVals.join(', ') + ";");
 
-            console.log('✅ 37 Users and their Meter Readings seeded successfully! Ready for Dashboard!');
-        } else {
-            console.log('✅ Database already populated. Skipping seed.');
+            console.log('✅ 37 Users seeded perfectly! Check the website now!');
         }
 
     } catch (err) {
@@ -212,7 +198,6 @@ const initDb = async () => {
 
 initDb();
 
-// 1. API สำหรับ Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -222,7 +207,6 @@ app.post('/api/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. API สำหรับหน้า Homepage 
 app.get('/api/meter-status', async (req, res) => {
     const username = req.query.user;
     try {
@@ -244,7 +228,6 @@ app.get('/api/meter-status', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Database error" }); }
 });
 
-// 3. API สำหรับหน้า Admin Report
 app.get('/api/admin-report', async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM admin_energy_report');
@@ -253,7 +236,6 @@ app.get('/api/admin-report', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 4. API สำหรับรับข้อมูลมิเตอร์
 app.post('/api/add-meter', async (req, res) => {
     const { meterId, kwhValue } = req.body; 
     try {
@@ -278,12 +260,8 @@ app.post('/api/add-meter', async (req, res) => {
     }
 });
 
-// --- ส่วนของการส่งไฟล์หน้าเว็บ ---
 app.use(express.static(path.join(__dirname, '.')));
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'sign in.html'));
-});
+app.get('/', (req, res) => { res.sendFile(path.join(__dirname, 'sign in.html')); });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
