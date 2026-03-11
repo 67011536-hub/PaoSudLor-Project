@@ -68,6 +68,7 @@
             color: red;
             text-align: center;
             font-size: .9rem;
+            min-height: 1.2rem;
         }
         .links {
             text-align: center;
@@ -93,7 +94,7 @@
             <label for="password">Password</label>
             <input type="password" id="password" name="password" required />
 
-            <button type="submit">Login</button>
+            <button type="submit" id="loginBtn">Login</button>
         </form>
         <div class="message" id="message"></div>
         <div class="links">
@@ -103,58 +104,17 @@
     </div>
 
     <script>
-        // ข้อมูล user (สมมติ - ในระบบจริงจะเรียก API)
-        const users = {
-            admin: { password: '1234', role: 'admin' },
-            tenant1: { password: '1234', role: 'user' },
-            tenant2: { password: '1234', role: 'user' }
-        };
-
-        document.getElementById('loginForm').addEventListener('submit', function(evt) {
+        document.getElementById('loginForm').addEventListener('submit', async function(evt) {
             evt.preventDefault();
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const messageElem = document.getElementById('message');
+            const loginBtn = document.getElementById('loginBtn');
 
-            const user = users[username];
+            // แสดงสถานะว่ากำลังโหลด
+            messageElem.style.color = 'blue';
+            messageElem.textContent = 'Checking...';
+            loginBtn.disabled = true;
 
-            if (user && user.password === password) {
-                // ตรวจสอบ role แล้วเด้งไปหน้าตามสัญชาติ
-                if (user.role === 'admin') {
-                    window.location.href = 'adminpage.html?user=' + encodeURIComponent(username);
-                } else {
-                    window.location.href = 'homepage.html?user=' + encodeURIComponent(username);
-                }
-            } else {
-                document.getElementById('message').textContent = 'Incorrect username or password';
-            }
-        });
-
-        function updateTable() {
-            // ตัวเลือกปี/เดือน/ตึก/ชั้นเหมือนเดิม
-
-            let totalUnits = 0;
-            let totalRevenue = 0;
-            for (const room of roomData[selectedBuilding][selectedFloor].rooms) {
-                const kwh = room.kwh;
-                const costValue = kwh * RATE;
-                totalUnits += kwh;
-                totalRevenue += costValue;
-            }
-
-            // อัปเดตสรุป
-            document.getElementById('totalUnits').textContent = totalUnits;
-            document.getElementById('totalRevenue').textContent = totalRevenue.toLocaleString();
-            window.currentTotals = { units: totalUnits, revenue: totalRevenue };
-        }
-
-        function calculateProfit() {
-            const actual = parseFloat(document.getElementById('actualCost').value) || 0;
-            const rev = window.currentTotals?.revenue || 0;
-            const profit = rev - actual;
-            const profitElem = document.getElementById('profit');
-            profitElem.textContent = profit.toLocaleString();
-            profitElem.style.color = profit < 0 ? 'red' : 'green';
-        }
-    </script>
-</body>
-</html>
+            try {
