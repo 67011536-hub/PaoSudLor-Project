@@ -12,7 +12,6 @@
             --radius: 8px;
             --shadow: 0 2px 8px rgba(0,0,0,.1);
             --text: #343a40;
-            --muted: #6c757d;
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         * { box-sizing: border-box; }
@@ -36,7 +35,7 @@
         }
         .filter-group { display: flex; flex-direction: column; }
         .filter-group label { font-weight: 500; margin-bottom: .25rem; font-size: .9rem; }
-        .filter-group select, .filter-group input {
+        .filter-group input {
             padding: .5rem; border: 1px solid #ccc;
             border-radius: var(--radius); font-size: 1rem;
         }
@@ -56,8 +55,11 @@
         .profit-pos { color: green; font-weight: bold; }
         .profit-neg { color: red; font-weight: bold; }
         
-        /* สไตล์สำหรับตารางที่เลื่อนได้ */
         .table-responsive { max-height: 400px; overflow-y: auto; overflow-x: auto; margin-top: 1rem; }
+
+        /* ป้ายสถานะจ่ายเงิน */
+        .badge-paid { background: #26de81; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        .badge-unpaid { background: #fc5c65; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -85,20 +87,20 @@
         </div>
 
         <div class="card">
-            <h2>All Rooms Status (ข้อมูลทุกห้อง)</h2>
+            <h2>All Rooms Status (สถานะทุกห้อง)</h2>
             <div class="table-responsive">
                 <table id="allRoomsTable">
                     <thead>
                         <tr>
                             <th>Room</th>
                             <th>Tenant Name</th>
-                            <th>Current Meter (kWh)</th>
+                            <th>Current (kWh)</th>
                             <th>Units Used</th>
-                            <th>Est. Cost (฿)</th>
-                        </tr>
+                            <th>Total (฿)</th>
+                            <th>Status</th> </tr>
                     </thead>
                     <tbody id="allRoomsBody">
-                        <tr><td colspan="5">Loading data...</td></tr>
+                        <tr><td colspan="6">Loading data...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -123,14 +125,11 @@
     <script>
         const API_BASE = 'https://paosudlor-project.onrender.com';
 
-        // 1. ฟังก์ชันดึงสรุปยอด
         async function fetchAdminSummary() {
             try {
                 const resp = await fetch(`${API_BASE}/api/admin-report`);
                 const data = await resp.json();
                 const tbody = document.getElementById('summaryBody');
-                
-                const tr = document.createElement('tr');
                 const profitClass = data.profit >= 0 ? 'profit-pos' : 'profit-neg';
                 
                 tbody.innerHTML = `
@@ -146,7 +145,6 @@
             }
         }
 
-        // 2. ฟังก์ชันดึงสถานะทุกห้อง (ใหม่)
         async function fetchAllRooms() {
             try {
                 const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
@@ -155,27 +153,38 @@
                 tbody.innerHTML = '';
 
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5">ไม่มีข้อมูลห้องในระบบ</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6">ไม่มีข้อมูลห้องในระบบ</td></tr>';
                     return;
                 }
 
+                // 🌟 รายชื่อห้องที่เราจะ "เมค" ว่ายังไม่จ่ายเงิน
+                const unpaidRooms = ['102', '105', '110', '203'];
+
                 data.forEach(room => {
                     const tr = document.createElement('tr');
+                    
+                    // 🌟 เช็คเงื่อนไขเมคค่า: ถ้าเลขห้องตรงกับที่ตั้งไว้ ให้ขึ้น UNPAID
+                    let statusHtml = '';
+                    if (unpaidRooms.includes(room.room_number)) {
+                        statusHtml = '<span class="badge-unpaid">UNPAID</span>';
+                    } else {
+                        statusHtml = '<span class="badge-paid">PAID</span>';
+                    }
+
                     tr.innerHTML = `
                         <td><strong>${room.room_number}</strong></td>
                         <td>${room.tenant_name}</td>
                         <td>${room.current_reading}</td>
                         <td>${room.units_used}</td>
                         <td>${(room.units_used * 8).toLocaleString()} ฿</td>
-                    `;
+                        <td>${statusHtml}</td> `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="5" style="color:red;">ไม่สามารถโหลดข้อมูลห้องได้</td></tr>';
+                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="6" style="color:red;">ไม่สามารถโหลดข้อมูลห้องได้</td></tr>';
             }
         }
 
-        // 3. ฟังก์ชันบันทึกค่าไฟ
         async function saveReading() {
             const meterId = document.getElementById('meterIdInput').value;
             const kwhValue = document.getElementById('meterValInput').value;
@@ -196,7 +205,7 @@
                     alert("✅ บันทึกข้อมูลสำเร็จ!");
                     document.getElementById('meterIdInput').value = '';
                     document.getElementById('meterValInput').value = '';
-                    loadAllData(); // โหลดข้อมูลใหม่ทั้งหมดทันที
+                    loadAllData();
                 } else {
                     alert("❌ Error: " + result.error);
                 }
@@ -205,7 +214,6 @@
             }
         }
         
-        // ฟังก์ชันเรียกโหลดข้อมูลทั้งหมดพร้อมกัน
         function loadAllData() {
             fetchAdminSummary();
             fetchAllRooms();
