@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg'); 
 const cors = require('cors');
+const path = require('path');
 const app = express();
 
 app.use(cors());
@@ -16,6 +17,7 @@ db.connect((err) => {
     else console.log('✅ Connected to Postgres!');
 });
 
+// 1. API สำหรับ Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -25,6 +27,32 @@ app.post('/api/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// 2. API สำหรับหน้า Homepage (ดึงข้อมูลมิเตอร์รายบุคคล)
+app.get('/api/meter-status', async (req, res) => {
+    const username = req.query.user;
+    try {
+        const query = `
+            SELECT 
+                u.username, 
+                COALESCE(MAX(m.kwh_value), 0) as current_reading,
+                COALESCE(MAX(m.kwh_value) - MIN(m.kwh_value), 0) as units_used
+            FROM users u
+            LEFT JOIN Meter_Readings m ON u.meter_id = m.meter_id
+            WHERE u.username = $1
+            GROUP BY u.username
+        `;
+        const result = await db.query(query, [username]);
+        if (result.rows.length > 0) {
+            res.json(result.rows[0]);
+        } else {
+            res.json({ current_reading: 0, units_used: 0 });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// 3. API สำหรับหน้า Admin Report
 app.get('/api/admin-report', async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM admin_energy_report');
@@ -33,17 +61,12 @@ app.get('/api/admin-report', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-const PORT = process.env.PORT || 3000;
-
-const path = require('path');
-
-// บอกให้ Express ส่งไฟล์ static จากโฟลเดอร์ปัจจุบัน
+// --- ส่วนของการส่งไฟล์หน้าเว็บ ---
 app.use(express.static(path.join(__dirname, '.')));
 
-// เมื่อเข้าหน้าแรก ให้ส่งไฟล์ sign in.html ไปให้
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'sign in.html'));
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
-
