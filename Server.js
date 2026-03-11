@@ -34,4 +34,16 @@ app.get('/api/admin-report', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
+const path = require('path');
+
+// บอกให้ Express ส่งไฟล์ static จากโฟลเดอร์ปัจจุบัน
+app.use(express.static(path.join(__dirname, '.')));
+
+// เมื่อเข้าหน้าแรก ให้ส่งไฟล์ sign in.html ไปให้
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'sign in.html'));
+});
+
 app.listen(PORT, () => console.log(`🚀 Port: ${PORT}`));
+
