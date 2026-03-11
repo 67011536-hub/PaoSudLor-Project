@@ -18,19 +18,16 @@ db.connect((err) => {
     else console.log('✅ Connected to Postgres!');
 });
 
-// ==========================================
-// ส่วนจัดการ Database + ป้องกันข้อมูลหาย
-// ==========================================
 const initDb = async () => {
     try {
         let shouldSeed = false; 
 
-        // เช็คว่าในฐานข้อมูลมีข้อมูลครบ 37 คนหรือยัง ถ้ายังให้สร้างใหม่ ถ้ามีแล้วห้ามลบ!
+        // เช็คว่าในฐานข้อมูลมีข้อมูลครบ 37 คนหรือยัง ถ้ายังให้สร้างใหม่
         try {
             const check = await db.query("SELECT COUNT(*) FROM users");
             if (parseInt(check.rows[0].count) < 37) shouldSeed = true;
         } catch (e) {
-            shouldSeed = true; // กรณีตารางยังไม่ถูกสร้าง
+            shouldSeed = true;
         }
 
         if (shouldSeed) {
@@ -144,14 +141,10 @@ const initDb = async () => {
             FOR EACH ROW EXECUTE FUNCTION calculate_late_fee();
         `);
 
-        // ยัดข้อมูลจำลอง 37 ห้อง (ทำแค่ตอนฐานข้อมูลโล่งๆ)
         if (shouldSeed) {
             console.log('🌱 Seeding 37 Users and Meter Readings...');
-            
             await db.query(`INSERT INTO users (name, role, username, password_hash) VALUES ('Admin', 'Admin', 'admin', '1234');`);
-
             const tenantNames = ['Somchai','Suda','Anan','Pim','Niran','Malee','Krit','Dao','Manop','Nok','Prasit','Chan','Wipa','Sakda','Arisa','Tawin','Kanya','Phon','Siri','Napat','Preecha','Orn','Chai','Ploy','Veera','Mint','Thanakorn','Ying','Somsak','Nicha','Wichai','Fon','Korn','Jane','Tom','Aom','Pimnara'];
-            
             let usersInsert = "INSERT INTO users (name, role, username, password_hash) VALUES ";
             let userVals = [];
             for(let i=0; i<37; i++) {
@@ -160,10 +153,8 @@ const initDb = async () => {
             }
             await db.query(usersInsert + userVals.join(', ') + ";");
 
-            let meterVals = [];
-            let roomVals = [];
-            let roomId = 101;
-            let mId = 1;
+            let meterVals = []; let roomVals = [];
+            let roomId = 101; let mId = 1;
             for(let i=1; i<=20; i++) {
                 meterVals.push(`('MTR${roomId}', CURRENT_DATE)`);
                 roomVals.push(`('${roomId}', 1, '${i<=17 ? 'Occupied' : 'Vacant'}', ${mId})`);
@@ -179,9 +170,7 @@ const initDb = async () => {
             await db.query("INSERT INTO Rooms (room_number, floor, status, meter_id) VALUES " + roomVals.join(', ') + ";");
 
             let contractVals = [];
-            for(let i=1; i<=37; i++) {
-                contractVals.push(`(${i+1}, ${i}, '2026-01-01')`);
-            }
+            for(let i=1; i<=37; i++) { contractVals.push(`(${i+1}, ${i}, '2026-01-01')`); }
             await db.query("INSERT INTO Contracts (user_id, room_id, start_date) VALUES " + contractVals.join(', ') + ";");
 
             let readingVals = [];
@@ -189,29 +178,20 @@ const initDb = async () => {
                 const startVal = Math.floor(Math.random() * 50) + 1; 
                 const usage = Math.floor(Math.random() * 150) + 80;  
                 const endVal = startVal + usage;
-
                 readingVals.push(`(${i}, ${startVal}, '2026-01-01')`);
                 readingVals.push(`(${i}, ${endVal}, '2026-01-31')`);
             }
             await db.query("INSERT INTO Meter_Readings (meter_id, kwh_value, reading_date) VALUES " + readingVals.join(', ') + ";");
-
-            console.log('✅ 37 Users seeded perfectly! Check the website now!');
+            console.log('✅ 37 Users seeded perfectly!');
         } else {
-            console.log('✅ Data already exists. Skipping seed to protect admin data.');
+            console.log('✅ Data already exists. Skipping seed.');
         }
-
-    } catch (err) {
-        console.error('❌ Database init error:', err.message);
-    }
+    } catch (err) { console.error('❌ Database init error:', err.message); }
 };
 
 initDb();
 
-// ------------------------------------------------------------------
-// ==================== สรุป API ทั้งหมด 5 ตัว ========================
-// ------------------------------------------------------------------
-
-// 1. API: Login
+// --- APIs ---
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -221,55 +201,31 @@ app.post('/api/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. API: ดึงข้อมูลการ์ดสรุปยอด (หน้าผู้เช่า)
 app.get('/api/meter-status', async (req, res) => {
     const username = req.query.user;
     try {
         const query = `
-            SELECT 
-                u.username, 
-                COALESCE(MAX(m.kwh_value), 0) as current_reading,
-                COALESCE(MAX(m.kwh_value) - MIN(m.kwh_value), 0) as units_used
-            FROM users u
-            JOIN Contracts c ON u.user_id = c.user_id
-            JOIN Rooms r ON c.room_id = r.room_id
-            LEFT JOIN Meter_Readings m ON r.meter_id = m.meter_id
-            WHERE u.username = $1
-            GROUP BY u.username
-        `;
+            SELECT u.username, COALESCE(MAX(m.kwh_value), 0) as current_reading, COALESCE(MAX(m.kwh_value) - MIN(m.kwh_value), 0) as units_used
+            FROM users u JOIN Contracts c ON u.user_id = c.user_id JOIN Rooms r ON c.room_id = r.room_id LEFT JOIN Meter_Readings m ON r.meter_id = m.meter_id
+            WHERE u.username = $1 GROUP BY u.username`;
         const result = await db.query(query, [username]);
         if (result.rows.length > 0) res.json(result.rows[0]);
         else res.json({ current_reading: 0, units_used: 0 });
     } catch (err) { res.status(500).json({ error: "Database error" }); }
 });
 
-// 3. 🌟[ใหม่] API: ดึงประวัติตารางและกราฟรายเดือน (หน้าผู้เช่า)
 app.get('/api/usage-history', async (req, res) => {
     const { user, year } = req.query;
     try {
         const query = `
-            SELECT 
-                TO_CHAR(reading_date, 'Mon') AS month_name,
-                MIN(kwh_value) AS start_val,
-                MAX(kwh_value) AS end_val,
-                MAX(kwh_value) - MIN(kwh_value) AS units
-            FROM users u
-            JOIN Contracts c ON u.user_id = c.user_id
-            JOIN Rooms r ON c.room_id = r.room_id
-            JOIN Meter_Readings m ON r.meter_id = m.meter_id
-            WHERE u.username = $1 AND EXTRACT(YEAR FROM reading_date) = $2
-            GROUP BY EXTRACT(MONTH FROM reading_date), TO_CHAR(reading_date, 'Mon')
-            ORDER BY EXTRACT(MONTH FROM reading_date)
-        `;
+            SELECT TO_CHAR(reading_date, 'Mon') AS month_name, MIN(kwh_value) AS start_val, MAX(kwh_value) AS end_val, MAX(kwh_value) - MIN(kwh_value) AS units
+            FROM users u JOIN Contracts c ON u.user_id = c.user_id JOIN Rooms r ON c.room_id = r.room_id JOIN Meter_Readings m ON r.meter_id = m.meter_id
+            WHERE u.username = $1 AND EXTRACT(YEAR FROM reading_date) = $2 GROUP BY EXTRACT(MONTH FROM reading_date), TO_CHAR(reading_date, 'Mon') ORDER BY EXTRACT(MONTH FROM reading_date)`;
         const result = await db.query(query, [user, year || 2026]);
         res.json(result.rows);
-    } catch (err) { 
-        console.error("Usage History Error:", err);
-        res.status(500).json({ error: "Database error" }); 
-    }
+    } catch (err) { res.status(500).json({ error: "Database error" }); }
 });
 
-// 4. API: ดึงข้อมูลสรุปยอดทั้งตึก (หน้าแอดมิน)
 app.get('/api/admin-report', async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM admin_energy_report');
@@ -278,28 +234,43 @@ app.get('/api/admin-report', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 5. API: รับข้อมูลบันทึกเลขมิเตอร์ (หน้าแอดมิน)
 app.post('/api/add-meter', async (req, res) => {
     const { meterId, kwhValue } = req.body; 
     try {
         const roomRes = await db.query('SELECT meter_id FROM Rooms WHERE room_number = $1', [meterId.toString()]);
         let actualMeterId;
-        
         if (roomRes.rows.length === 0) {
             const newMeter = await db.query("INSERT INTO Meters (serial_number) VALUES ($1) RETURNING meter_id", [`MTR${meterId}`]);
             actualMeterId = newMeter.rows[0].meter_id;
             const newRoom = await db.query("INSERT INTO Rooms (room_number, floor, meter_id) VALUES ($1, 1, $2) RETURNING room_id", [meterId.toString(), actualMeterId]);
             const newUser = await db.query("INSERT INTO users (name, role, username, password_hash) VALUES ($1, 'Tenant', $2, '1234') RETURNING user_id", [`ผู้เช่าห้อง ${meterId}`, `room${meterId}`]);
             await db.query("INSERT INTO Contracts (user_id, room_id, start_date) VALUES ($1, $2, CURRENT_DATE)", [newUser.rows[0].user_id, newRoom.rows[0].room_id]);
-        } else {
-            actualMeterId = roomRes.rows[0].meter_id;
-        }
-
+        } else { actualMeterId = roomRes.rows[0].meter_id; }
         await db.query('INSERT INTO Meter_Readings (meter_id, reading_date, kwh_value) VALUES ($1, CURRENT_DATE, $2)', [actualMeterId, kwhValue]);
-        
         res.json({ success: true, message: 'บันทึกสำเร็จ!' });
+    } catch (err) { res.status(500).json({ success: false, error: err.message }); }
+});
+
+// 6. 🌟[ใหม่] API: ดึงข้อมูลสถานะห้องทั้งหมดให้แอดมินดู
+app.get('/api/admin-all-rooms', async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                r.room_number,
+                COALESCE(u.name, 'ว่าง') AS tenant_name,
+                COALESCE(MAX(mr.kwh_value), 0) AS current_reading,
+                COALESCE(MAX(mr.kwh_value) - MIN(mr.kwh_value), 0) AS units_used
+            FROM Rooms r
+            LEFT JOIN Contracts c ON r.room_id = c.room_id
+            LEFT JOIN users u ON c.user_id = u.user_id
+            LEFT JOIN Meter_Readings mr ON r.meter_id = mr.meter_id
+            GROUP BY r.room_number, u.name
+            ORDER BY r.room_number ASC
+        `;
+        const result = await db.query(query);
+        res.json(result.rows);
     } catch (err) { 
-        res.status(500).json({ success: false, error: err.message }); 
+        res.status(500).json({ error: "Database error" }); 
     }
 });
 
