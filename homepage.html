@@ -1,201 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Dashboard – Com Info</title>
-    <style>
-        :root {
-            --bg: #f7f8fa;
-            --card: #ffffff;
-            --primary: #3466af;
-            --accent1: #7360f2;
-            --accent2: #ff6b6b;
-            --accent3: #4caf50;
-            --accent4: #ff9800;
-            --radius: 12px;
-            --shadow: 0 4px 12px rgba(0,0,0,.08);
-            --text: #343a40;
-            --muted: #6c757d;
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
-        header {
-            background: var(--primary);
-            color: #fff;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 500;
-        }
-        main {
-            padding: 2rem;
-        }
-        .card {
-            background: var(--card);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat {
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius);
-            color: #fff;
-            position: relative;
-        }
-        .stat h3 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 400;
-        }
-        .stat .value {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-top: .5rem;
-        }
-        .stat.accent1 { background: var(--accent1); }
-        .stat.accent2 { background: var(--accent2); }
-        .stat.accent3 { background: var(--accent3); }
-        .stat.accent4 { background: var(--accent4); }
-        .filter-section {
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        .filter-section label {
-            font-weight: 500;
-        }
-        .filter-section select {
-            padding: .5rem;
-            border: 1px solid #ccc;
-            border-radius: var(--radius);
-            font-size: 1rem;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 1rem;
-        }
-        th, td {
-            border: 1px solid #dee2e6;
-            padding: .5rem .75rem;
-            text-align: center;
-            vertical-align: top;
-        }
-        th {
-            background: var(--bg);
-            font-weight: 500;
-        }
-        .month-cell {
-            font-weight: 500;
-        }
-        .user-info {
-            font-size: .9rem;
-            color: var(--muted);
-        }
-        .logout {
-            font-size: .9rem;
-            color: #fff;
-            text-decoration: none;
-        }
-        .logout:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>Com Info<span class="logout"><a href="index.html" class="logout">Logout</a></span></h1>
-    </header>
-    <main>
-        <!-- top summary cards -->
-        <div class="stats">
-            <div class="stat accent1">
-                <h3>This month's cost</h3>
-                <div class="value" id="cardCost">0 ฿</div>
-            </div>
-            <div class="stat accent2">
-                <h3>Due date</h3>
-                <div class="value" id="cardDue">ก่อนวันที่ 10</div>
-            </div>
-            <div class="stat accent3">
-                <h3>Units used</h3>
-                <div class="value" id="cardUnits">0 kWh</div>
-            </div>
-            <div class="stat accent4">
-                <h3>Current reading</h3>
-                <div class="value" id="cardMeter">0</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Monthly electricity usage</h2>
-            <div class="user-info" id="userName"></div>
-            
-            <!-- real‑time meter reading display -->
-            <div id="realTimeMeter" style="margin:1.5rem 0;">
-                <h3>Current meter reading</h3>
-                <p id="meterValue" class="muted">Loading...</p>
-            </div>
-            
-            <div class="filter-section">
-                <label for="yearSelect">Select Year:</label>
-                <select id="yearSelect">
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                    <option value="2022">2022</option>
-                    <option value="2021">2021</option>
-                </select>
-            </div>
-
-            <canvas id="usageChart" style="max-width:100%;height:250px; margin-top:1rem;"></canvas>
-
-            <table id="usageTable">
-                <thead>
-                    <tr>
-                        <th>Month</th>
-                        <th>Meter start</th>
-                        <th>Meter end</th>
-                        <th>Units (kWh)</th>
-                        <th>Cost (฿)</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </main>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // 🛑 ใส่ลิงก์เว็บ Render ของคุณตรงนี้! (เช่น 'https://my-dorm-app.onrender.com')
+    // ถ้าไม่ใส่ หรือเปิดผ่าน Live Server มันจะพังครับ
+    const API_BASE = 'https://ใส่ลิงก์เว็บRenderของคุณตรงนี้.onrender.com'; 
+
     const RATE = 8; // บาทต่อหน่วย
     const params = new URLSearchParams(window.location.search);
     const user = params.get('user') || 'unknown';
     document.getElementById('userName').textContent = 'Tenant: ' + user;
     
-    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
     // 1. ฟังก์ชันดึงข้อมูลสรุป (Cards) และเลขมิเตอร์ล่าสุด
     async function fetchDashboardData() {
         try {
-            const resp = await fetch(`/api/meter-status?user=${encodeURIComponent(user)}`);
+            // ✅ ชี้เป้าไปที่ Render โดยตรง
+            const resp = await fetch(`${API_BASE}/api/meter-status?user=${encodeURIComponent(user)}`);
             if (!resp.ok) throw new Error('Data not found');
             const data = await resp.json();
 
@@ -210,16 +28,22 @@
         }
     }
 
-    // 2. ฟังก์ชันดึงข้อมูลตารางและกราฟ (ดึงข้อมูลแยกตามปี)
+    // 2. ฟังก์ชันดึงข้อมูลตารางและกราฟ
     async function updateTable() {
         const selectedYear = document.getElementById('yearSelect').value;
         const tbody = document.querySelector('#usageTable tbody');
         
         try {
-            // หมายเหตุ: ตรงนี้ต้องมี API รองรับที่ Server ด้วย
-            const resp = await fetch(`/api/usage-history?user=${encodeURIComponent(user)}&year=${selectedYear}`);
-            const history = await resp.json();
+            // ✅ ชี้เป้าไปที่ Render โดยตรง
+            const resp = await fetch(`${API_BASE}/api/usage-history?user=${encodeURIComponent(user)}&year=${selectedYear}`);
+            
+            // ถ้า Server ยังไม่มี API นี้ ให้จำลองตารางขึ้นมาก่อน จะได้ไม่ Error แดง
+            if (!resp.ok) {
+                tbody.innerHTML = '<tr><td colspan="5" style="color:#ff6b6b;">รอเพิ่ม API ประวัติใน Server.js (ตอนนี้ดูได้แค่การ์ดด้านบน)</td></tr>';
+                return;
+            }
 
+            const history = await resp.json();
             tbody.innerHTML = '';
             if (history.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5">No data for this year</td></tr>';
@@ -237,9 +61,8 @@
                 `;
                 tbody.appendChild(tr);
             });
-            // (สามารถนำ data ไปวาด Chart.js ต่อได้ที่นี่)
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="5">Connect your Database on Render first</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5">ไม่สามารถเชื่อมต่อดึงประวัติได้</td></tr>';
         }
     }
 
@@ -253,6 +76,3 @@
     // ส่วนของปุ่ม Logout
     document.querySelector('.logout a').href = 'sign in.html'; 
 </script>
-</body>
-
-</html>
