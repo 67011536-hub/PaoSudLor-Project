@@ -104,6 +104,9 @@
     </div>
 
     <script>
+        // ✅ เพิ่มลิงก์ชี้ไปที่ Render ของคุณ
+        const API_BASE = 'https://paosudlor-project.onrender.com';
+
         document.getElementById('loginForm').addEventListener('submit', async function(evt) {
             evt.preventDefault();
             
@@ -118,8 +121,8 @@
             loginBtn.disabled = true;
 
             try {
-                // ยิง API ไปที่ Server (ใช้ path เล็กเพื่อรองรับ Render)
-                const response = await fetch('/api/login', {
+                // ✅ แก้ลิงก์ยิง API ไปที่ Render โดยตรง
+                const response = await fetch(`${API_BASE}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
@@ -133,7 +136,8 @@
                     
                     // หน่วงเวลาเล็กน้อยให้ผู้ใช้เห็นสถานะ ก่อนเปลี่ยนหน้า
                     setTimeout(() => {
-                        if (data.role === 'admin') {
+                        // ✅ แปลง role เป็นพิมพ์เล็กทั้งหมด ป้องกันบั๊ก Admin ทะลุไปหน้าผู้เช่า
+                        if (data.role && data.role.toLowerCase() === 'admin') {
                             window.location.href = 'adminpage.html?user=' + encodeURIComponent(username);
                         } else {
                             window.location.href = 'homepage.html?user=' + encodeURIComponent(username);
