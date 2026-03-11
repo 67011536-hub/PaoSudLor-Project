@@ -1,171 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Dashboard – Com Info</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Com Info</title>
     <style>
         :root {
             --bg: #f7f8fa;
-            --card: #ffffff;
+            --card-bg: #ffffff;
             --primary: #3466af;
-            --accent1: #7360f2;
-            --accent2: #ff6b6b;
-            --accent3: #4caf50;
-            --accent4: #ff9800;
-            --radius: 12px;
-            --shadow: 0 4px 12px rgba(0,0,0,.08);
-            --text: #343a40;
-            --muted: #6c757d;
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
-        header {
-            background: var(--primary);
-            color: #fff;
-            padding: 1rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        header h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            font-weight: 500;
-        }
-        main {
-            padding: 2rem;
+        body { margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); }
+        header { background: var(--primary); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .logout { color: white; text-decoration: none; font-size: 0.9rem; }
+        .logout:hover { text-decoration: underline; }
+        
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        
+        .dashboard-cards {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;
         }
         .card {
-            background: var(--card);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+            padding: 1.5rem; border-radius: var(--radius); color: white; box-shadow: var(--shadow); position: relative;
         }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+        .card-purple { background: #8854d0; }
+        .card-red { background: #fc5c65; }
+        .card-green { background: #26de81; }
+        .card-orange { background: #fd9644; }
+        
+        .card h3 { margin: 0 0 0.5rem 0; font-size: 0.9rem; font-weight: normal; opacity: 0.9; }
+        .card p { margin: 0; font-size: 1.8rem; font-weight: bold; }
+        
+        .content-section { background: var(--card-bg); padding: 1.5rem; border-radius: var(--radius); box-shadow: var(--shadow); }
+        .content-section h2 { margin-top: 0; color: #333; }
+        .tenant-info { margin-bottom: 1.5rem; color: #666; font-size: 0.9rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.75rem; text-align: center; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; color: #333; font-weight: 500; }
+        
+        /* 🌟 ปุ่มชำระเงิน */
+        .pay-btn {
+            background: rgba(255,255,255,0.25); border: 1px solid white; color: white;
+            padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+            position: absolute; top: 1.5rem; right: 1.5rem; transition: 0.2s; font-weight: bold;
         }
-        .stat {
-            padding: 1rem 1.5rem;
-            border-radius: var(--radius);
-            color: #fff;
-            position: relative;
+        .pay-btn:hover { background: white; color: #8854d0; }
+
+        /* 🌟 หน้าต่าง Pop-up (Modal) สำหรับแสดง QR Code */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;
         }
-        .stat h3 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 400;
+        .modal-content {
+            background: white; padding: 2rem; border-radius: 12px; text-align: center;
+            width: 90%; max-width: 350px; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: fadeIn 0.3s;
         }
-        .stat .value {
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-top: .5rem;
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        .close-modal {
+            position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #888; border: none; background: none;
         }
-        .stat.accent1 { background: var(--accent1); }
-        .stat.accent2 { background: var(--accent2); }
-        .stat.accent3 { background: var(--accent3); }
-        .stat.accent4 { background: var(--accent4); }
-        .filter-section {
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
+        .close-modal:hover { color: #333; }
+        .qr-image { width: 100%; max-width: 250px; margin: 1rem 0; border-radius: 8px; border: 1px solid #eee; }
+        .confirm-btn {
+            background: #3466af; color: white; border: none; padding: 10px; width: 100%;
+            border-radius: 6px; cursor: pointer; font-size: 1rem; margin-top: 10px; transition: 0.2s;
         }
-        .filter-section label {
-            font-weight: 500;
-        }
-        .filter-section select {
-            padding: .5rem;
-            border: 1px solid #ccc;
-            border-radius: var(--radius);
-            font-size: 1rem;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 1rem;
-        }
-        th, td {
-            border: 1px solid #dee2e6;
-            padding: .5rem .75rem;
-            text-align: center;
-            vertical-align: top;
-        }
-        th {
-            background: var(--bg);
-            font-weight: 500;
-        }
-        .month-cell {
-            font-weight: 500;
-        }
-        .user-info {
-            font-size: .9rem;
-            color: var(--muted);
-        }
-        .logout {
-            font-size: .9rem;
-            color: #fff;
-            text-decoration: none;
-        }
-        .logout:hover { text-decoration: underline; }
+        .confirm-btn:hover { background: #234a86; }
     </style>
 </head>
 <body>
     <header>
-        <h1>Com Info<span class="logout"><a href="index.html" class="logout">Logout</a></span></h1>
+        <h1>Com Info</h1>
+        <a href="sign in.html" class="logout">Logout</a>
     </header>
+    
     <main>
-        <div class="stats">
-            <div class="stat accent1">
+        <div class="dashboard-cards">
+            <div class="card card-purple">
                 <h3>This month's cost</h3>
-                <div class="value" id="cardCost">0 ฿</div>
+                <p id="costDisplay">0 ฿</p>
+                <button class="pay-btn" onclick="openModal()">ชำระเงิน (QR)</button>
             </div>
-            <div class="stat accent2">
+            <div class="card card-red">
                 <h3>Due date</h3>
-                <div class="value" id="cardDue">ก่อนวันที่ 10</div>
+                <p>ก่อนวันที่ 10</p>
             </div>
-            <div class="stat accent3">
+            <div class="card card-green">
                 <h3>Units used</h3>
-                <div class="value" id="cardUnits">0 kWh</div>
+                <p id="unitsDisplay">0 kWh</p>
             </div>
-            <div class="stat accent4">
+            <div class="card card-orange">
                 <h3>Current reading</h3>
-                <div class="value" id="cardMeter">0</div>
+                <p id="readingDisplay">0</p>
             </div>
         </div>
 
-        <div class="card">
+        <div class="content-section">
             <h2>Monthly electricity usage</h2>
-            <div class="user-info" id="userName"></div>
-            
-            <div id="realTimeMeter" style="margin:1.5rem 0;">
-                <h3>Current meter reading</h3>
-                <p id="meterValue" class="muted">Loading...</p>
+            <div class="tenant-info">
+                Tenant: <span id="tenantName" style="font-weight:bold;">Loading...</span><br><br>
+                <strong>Current meter reading</strong><br>
+                <span id="currentMeterTxt">0</span> kWh
             </div>
             
-            <div class="filter-section">
-                <label for="yearSelect">Select Year:</label>
-                <select id="yearSelect">
+            <div style="margin-bottom: 1rem;">
+                <label>Select Year: </label>
+                <select id="yearSelect" onchange="loadHistory()" style="padding: 4px; border-radius: 4px;">
                     <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                    <option value="2022">2022</option>
-                    <option value="2021">2021</option>
                 </select>
             </div>
-
-            <canvas id="usageChart" style="max-width:100%;height:250px; margin-top:1rem;"></canvas>
-
-            <table id="usageTable">
+            
+            <table>
                 <thead>
                     <tr>
                         <th>Month</th>
@@ -175,89 +126,107 @@
                         <th>Cost (฿)</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody id="historyBody">
+                    <tr><td colspan="5">Loading data...</td></tr>
+                </tbody>
             </table>
         </div>
     </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // ✅ ใส่ URL ของ Render ที่คุณให้มา
-    const API_BASE = 'https://paosudlor-project.onrender.com'; 
-
-    const RATE = 8; // บาทต่อหน่วย
-    const params = new URLSearchParams(window.location.search);
-    const user = params.get('user') || 'unknown';
-    document.getElementById('userName').textContent = 'Tenant: ' + user;
-    
-    const thaiMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-    // 1. ฟังก์ชันดึงข้อมูลสรุป (Cards) และเลขมิเตอร์ล่าสุด
-    async function fetchDashboardData() {
-        try {
-            const resp = await fetch(`${API_BASE}/api/meter-status?user=${encodeURIComponent(user)}`);
-            if (!resp.ok) throw new Error('Data not found');
-            const data = await resp.json();
-
-            // อัปเดตการ์ดด้านบน
-            document.getElementById('cardMeter').textContent = data.current_reading || 0;
-            document.getElementById('meterValue').textContent = (data.current_reading || 0) + ' kWh';
-            document.getElementById('cardUnits').textContent = (data.units_used || 0) + ' kWh';
-            document.getElementById('cardCost').textContent = ((data.units_used || 0) * RATE).toLocaleString() + ' ฿';
-        } catch (err) {
-            console.error('Error fetching dashboard:', err);
-            document.getElementById('meterValue').textContent = 'No data';
-        }
-    }
-
-    // 2. ฟังก์ชันดึงข้อมูลตารางและกราฟ (ดึงข้อมูลแยกตามปี)
-    async function updateTable() {
-        const selectedYear = document.getElementById('yearSelect').value;
-        const tbody = document.querySelector('#usageTable tbody');
-        
-        try {
-            const resp = await fetch(`${API_BASE}/api/usage-history?user=${encodeURIComponent(user)}&year=${selectedYear}`);
+    <div class="modal-overlay" id="qrModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <h3 style="margin-top: 0; color: #333;">สแกนเพื่อชำระเงิน</h3>
             
-            // ป้องกัน Error แดงในกรณีที่ Server ยังไม่มี API สำหรับประวัติตาราง
-            if (!resp.ok) {
-                tbody.innerHTML = '<tr><td colspan="5" style="color:#ff6b6b;">รอการเชื่อมต่อฐานข้อมูลประวัติเพิ่มเติม...</td></tr>';
-                return;
-            }
+            <img src="qr.png" alt="PromptPay QR Code" class="qr-image">
+            
+            <p style="margin: 0; color: #666; font-size: 0.9rem;">ยอดชำระสุทธิ:</p>
+            <h2 style="color: #8854d0; margin: 0.2rem 0 1rem 0;" id="modalAmount">0 ฿</h2>
+            
+            <p style="color: #e74c3c; font-size: 0.8rem; margin-bottom: 15px;">*กรุณาบันทึกสลิปหลังทำรายการสำเร็จ</p>
+            <button class="confirm-btn" onclick="closeModal()">ปิดหน้าต่าง</button>
+        </div>
+    </div>
 
-            const history = await resp.json();
+    <script>
+        const API_BASE = 'https://paosudlor-project.onrender.com';
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('user');
 
-            tbody.innerHTML = '';
-            if (history.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">No data for this year</td></tr>';
-                return;
-            }
-
-            history.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="month-cell">${row.month_name} ${selectedYear}</td>
-                    <td>${row.start_val}</td>
-                    <td>${row.end_val}</td>
-                    <td>${row.units}</td>
-                    <td>${(row.units * RATE).toLocaleString()}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="5">ไม่สามารถเชื่อมต่อดึงประวัติได้</td></tr>';
+        if (!username) {
+            window.location.href = 'sign in.html';
+        } else {
+            document.getElementById('tenantName').innerText = username;
+            fetchUserStatus();
+            loadHistory();
         }
-    }
 
-    // ทำงานเมื่อโหลดหน้าเว็บ
-    document.getElementById('yearSelect').addEventListener('change', updateTable);
-    fetchDashboardData();
-    updateTable();
-    // Refresh เลขมิเตอร์ทุก 30 วินาที
-    setInterval(fetchDashboardData, 30000);
+        let currentCost = 0; // ตัวแปรเก็บค่ายอดเงินส่งไปหน้า QR
 
-    // ส่วนของปุ่ม Logout (ให้กลับไปหน้า sign in)
-    document.querySelector('.logout a').href = 'sign in.html'; 
-</script>
+        async function fetchUserStatus() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/meter-status?user=${username}`);
+                const data = await resp.json();
+                
+                document.getElementById('readingDisplay').innerText = data.current_reading;
+                document.getElementById('currentMeterTxt').innerText = data.current_reading;
+                document.getElementById('unitsDisplay').innerText = data.units_used + " kWh";
+                
+                // คำนวณยอดชำระ และส่งไปแสดงทั้งในบัตรม่วง และใน Pop-up
+                currentCost = data.units_used * 8; 
+                document.getElementById('costDisplay').innerText = currentCost.toLocaleString() + " ฿";
+                document.getElementById('modalAmount').innerText = currentCost.toLocaleString() + " ฿";
+            } catch (err) {
+                console.error('Error fetching status:', err);
+            }
+        }
+
+        async function loadHistory() {
+            const year = document.getElementById('yearSelect').value;
+            try {
+                const resp = await fetch(`${API_BASE}/api/usage-history?user=${username}&year=${year}`);
+                const data = await resp.json();
+                const tbody = document.getElementById('historyBody');
+                tbody.innerHTML = '';
+                
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">ไม่มีประวัติการใช้ไฟ</td></tr>';
+                    return;
+                }
+                
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    const cost = (row.units * 8).toLocaleString() + ' ฿';
+                    tr.innerHTML = `
+                        <td>${row.month_name}</td>
+                        <td>${row.start_val}</td>
+                        <td>${row.end_val}</td>
+                        <td>${row.units}</td>
+                        <td>${cost}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                document.getElementById('historyBody').innerHTML = '<tr><td colspan="5" style="color:red;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</td></tr>';
+            }
+        }
+
+        // 🌟 ฟังก์ชันควบคุมการเปิด-ปิด Modal
+        function openModal() {
+            document.getElementById('qrModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('qrModal').style.display = 'none';
+        }
+
+        // คลิกพื้นที่สีดำรอบนอกเพื่อปิด Modal ได้
+        window.onclick = function(event) {
+            const modal = document.getElementById('qrModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
 </body>
 </html>
