@@ -118,3 +118,39 @@
             loginBtn.disabled = true;
 
             try {
+                // ยิง API ไปที่ Server (ใช้ path เล็กเพื่อรองรับ Render)
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messageElem.style.color = 'green';
+                    messageElem.textContent = 'Login successful!';
+                    
+                    // หน่วงเวลาเล็กน้อยให้ผู้ใช้เห็นสถานะ ก่อนเปลี่ยนหน้า
+                    setTimeout(() => {
+                        if (data.role === 'admin') {
+                            window.location.href = 'adminpage.html?user=' + encodeURIComponent(username);
+                        } else {
+                            window.location.href = 'homepage.html?user=' + encodeURIComponent(username);
+                        }
+                    }, 500);
+                } else {
+                    messageElem.style.color = 'red';
+                    messageElem.textContent = data.message || 'Incorrect username or password';
+                    loginBtn.disabled = false;
+                }
+            } catch (err) {
+                console.error('Fetch Error:', err);
+                messageElem.style.color = 'red';
+                messageElem.textContent = 'Cannot connect to server. Please try again.';
+                loginBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
