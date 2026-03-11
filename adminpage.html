@@ -16,91 +16,48 @@
             font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
+        body { margin: 0; background: var(--bg); color: var(--text); }
         header {
-            background: var(--primary);
-            color: #fff;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background: var(--primary); color: #fff;
+            padding: 1rem 2rem; display: flex;
+            justify-content: space-between; align-items: center;
         }
-        header h1 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 400;
-        }
-        main {
-            padding: 2rem;
-        }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 400; }
+        main { padding: 2rem; }
         .card {
-            background: var(--card);
-            padding: 1.5rem;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            max-width: 900px;
-            margin: 0 auto 1.5rem auto;
+            background: var(--card); padding: 1.5rem;
+            border-radius: var(--radius); box-shadow: var(--shadow);
+            max-width: 900px; margin: 0 auto 1.5rem auto;
         }
         .filter-section {
-            margin-bottom: 1.5rem;
-            display: grid;
+            margin-bottom: 1.5rem; display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            align-items: end;
+            gap: 1rem; align-items: end;
         }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-        .filter-group label {
-            font-weight: 500;
-            margin-bottom: .25rem;
-            font-size: .9rem;
-        }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-weight: 500; margin-bottom: .25rem; font-size: .9rem; }
         .filter-group select, .filter-group input {
-            padding: .5rem;
-            border: 1px solid #ccc;
-            border-radius: var(--radius);
-            font-size: 1rem;
+            padding: .5rem; border: 1px solid #ccc;
+            border-radius: var(--radius); font-size: 1rem;
         }
         button.filter-btn {
-            padding: .5rem 1rem;
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-size: 1rem;
+            padding: .5rem 1rem; background: var(--primary);
+            color: #fff; border: none; border-radius: var(--radius);
+            cursor: pointer; font-size: 1rem;
         }
         button.filter-btn:hover { background: #234a86; }
         
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 1rem;
-            font-size: .9rem;
-        }
-        th, td {
-            border: 1px solid #dee2e6;
-            padding: .5rem .75rem;
-            text-align: center;
-        }
-        th {
-            background: var(--bg);
-            font-weight: 500;
-        }
-        .logout {
-            color: #fff;
-            text-decoration: none;
-            font-size: .9rem;
-        }
+        table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .9rem; }
+        th, td { border: 1px solid #dee2e6; padding: .5rem .75rem; text-align: center; }
+        th { background: var(--bg); font-weight: 500; position: sticky; top: 0; }
+        
+        .logout { color: #fff; text-decoration: none; font-size: .9rem; }
         .logout:hover { text-decoration: underline; }
         .profit-pos { color: green; font-weight: bold; }
         .profit-neg { color: red; font-weight: bold; }
+        
+        /* สไตล์สำหรับตารางที่เลื่อนได้ */
+        .table-responsive { max-height: 400px; overflow-y: auto; overflow-x: auto; margin-top: 1rem; }
     </style>
 </head>
 <body>
@@ -111,7 +68,6 @@
     <main>
         <div class="card">
             <h2>Building Usage Summary</h2>
-            <p style="font-size: 0.85rem; color: var(--muted);">Data pulled from SQL Server on Render</p>
             <table id="usageTable">
                 <thead>
                     <tr>
@@ -125,7 +81,27 @@
                     <tr><td colspan="4">Loading data...</td></tr>
                 </tbody>
             </table>
-            <button class="filter-btn" style="margin-top: 1rem;" onclick="fetchAdminSummary()">Refresh Report</button>
+            <button class="filter-btn" style="margin-top: 1rem;" onclick="loadAllData()">Refresh Report</button>
+        </div>
+
+        <div class="card">
+            <h2>All Rooms Status (ข้อมูลทุกห้อง)</h2>
+            <div class="table-responsive">
+                <table id="allRoomsTable">
+                    <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Tenant Name</th>
+                            <th>Current Meter (kWh)</th>
+                            <th>Units Used</th>
+                            <th>Est. Cost (฿)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allRoomsBody">
+                        <tr><td colspan="5">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
@@ -145,72 +121,82 @@
     </main>
 
     <script>
-        // ✅ เพิ่มลิงก์ชี้ไปที่ Render ของคุณ
         const API_BASE = 'https://paosudlor-project.onrender.com';
 
-        // ฟังก์ชันดึงข้อมูลจาก API /api/admin-report ใน Server.js
+        // 1. ฟังก์ชันดึงสรุปยอด
         async function fetchAdminSummary() {
             try {
-                // ✅ แก้ให้ชี้ไปที่ Render
                 const resp = await fetch(`${API_BASE}/api/admin-report`);
-                
-                // ตรวจสอบว่ามี API นี้ใน Server หรือไม่
-                if (!resp.ok) {
-                    throw new Error('API Endpoint not found or Server Error');
-                }
-
                 const data = await resp.json();
-                
                 const tbody = document.getElementById('summaryBody');
-                tbody.innerHTML = '';
-
+                
                 const tr = document.createElement('tr');
                 const profitClass = data.profit >= 0 ? 'profit-pos' : 'profit-neg';
                 
-                tr.innerHTML = `
-                    <td>${data.total_units || 0}</td>
-                    <td>${(data.income_from_tenants || 0).toLocaleString()} ฿</td>
-                    <td>${(data.cost_to_pea || 0).toLocaleString()} ฿</td>
-                    <td class="${profitClass}">${(data.profit || 0).toLocaleString()} ฿</td>
+                tbody.innerHTML = `
+                    <tr>
+                        <td>${data.total_units || 0}</td>
+                        <td>${(data.income_from_tenants || 0).toLocaleString()} ฿</td>
+                        <td>${(data.cost_to_pea || 0).toLocaleString()} ฿</td>
+                        <td class="${profitClass}">${(data.profit || 0).toLocaleString()} ฿</td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
             } catch (err) {
-                console.error('Fetch Error:', err);
-                // แสดงข้อความให้รู้ว่ากำลังรอเพิ่ม API ในฝั่ง Server
-                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:#ff6b6b;">ยังไม่มีข้อมูล หรือกำลังรอเชื่อมต่อ API สรุปยอดใน Server.js</td></tr>';
+                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:red;">Error loading API</td></tr>';
             }
         }
 
-        // ฟังก์ชันส่งข้อมูลไปให้ Server
+        // 2. ฟังก์ชันดึงสถานะทุกห้อง (ใหม่)
+        async function fetchAllRooms() {
+            try {
+                const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
+                const data = await resp.json();
+                const tbody = document.getElementById('allRoomsBody');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5">ไม่มีข้อมูลห้องในระบบ</td></tr>';
+                    return;
+                }
+
+                data.forEach(room => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${room.room_number}</strong></td>
+                        <td>${room.tenant_name}</td>
+                        <td>${room.current_reading}</td>
+                        <td>${room.units_used}</td>
+                        <td>${(room.units_used * 8).toLocaleString()} ฿</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="5" style="color:red;">ไม่สามารถโหลดข้อมูลห้องได้</td></tr>';
+            }
+        }
+
+        // 3. ฟังก์ชันบันทึกค่าไฟ
         async function saveReading() {
             const meterId = document.getElementById('meterIdInput').value;
             const kwhValue = document.getElementById('meterValInput').value;
 
             if(!meterId || !kwhValue) {
-                alert("กรุณากรอกข้อมูลให้ครบ!");
-                return;
+                alert("กรุณากรอกข้อมูลให้ครบ!"); return;
             }
 
             try {
-                // ✅ แก้ให้ชี้ไปที่ Render
                 const response = await fetch(`${API_BASE}/api/add-meter`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ meterId: meterId, kwhValue: kwhValue })
+                    body: JSON.stringify({ meterId, kwhValue })
                 });
                 
-                // ถ้า API ฝั่ง Server ยังไม่รองรับการ Add Meter
-                if (!response.ok) {
-                    alert("❌ Server ยังไม่มี API สำหรับบันทึกข้อมูลนี้ (รอการเพิ่มใน Server.js)");
-                    return;
-                }
-
                 const result = await response.json();
                 if(result.success) {
-                    alert("✅ บันทึกข้อมูลสำเร็จ! ระบบอัปเดตข้อมูลแล้ว");
+                    alert("✅ บันทึกข้อมูลสำเร็จ!");
                     document.getElementById('meterIdInput').value = '';
                     document.getElementById('meterValInput').value = '';
-                    fetchAdminSummary(); // รีเฟรชตารางตัวเลขทันที
+                    loadAllData(); // โหลดข้อมูลใหม่ทั้งหมดทันที
                 } else {
                     alert("❌ Error: " + result.error);
                 }
@@ -219,8 +205,13 @@
             }
         }
         
-        // โหลดข้อมูลทันทีที่เปิดหน้า
-        window.onload = fetchAdminSummary;
+        // ฟังก์ชันเรียกโหลดข้อมูลทั้งหมดพร้อมกัน
+        function loadAllData() {
+            fetchAdminSummary();
+            fetchAllRooms();
+        }
+
+        window.onload = loadAllData;
     </script>
 </body>
 </html>
