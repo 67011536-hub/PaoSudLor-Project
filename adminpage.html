@@ -139,7 +139,7 @@
                     <label>Current Reading (kWh)</label>
                     <input type="number" id="meterValInput" placeholder="e.g. 1250">
                 </div>
-                <button class="filter-btn" onclick="alert('This feature requires an INSERT API on your server.')">Save Reading</button>
+                <button class="filter-btn" onclick="saveReading()">Save Reading</button>
             </div>
         </div>
     </main>
@@ -169,9 +169,39 @@
                 document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:red;">Error connecting to API</td></tr>';
             }
         }
+        // ฟังก์ชันส่งข้อมูลไปให้ Server
+        async function saveReading() {
+            const meterId = document.getElementById('meterIdInput').value;
+            const kwhValue = document.getElementById('meterValInput').value;
 
+            if(!meterId || !kwhValue) {
+                alert("กรุณากรอกข้อมูลให้ครบ!");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/add-meter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ meterId: meterId, kwhValue: kwhValue })
+                });
+                
+                const result = await response.json();
+                if(result.success) {
+                    alert("✅ บันทึกข้อมูลสำเร็จ! ระบบสร้างบัญชีให้ห้องนี้แล้ว");
+                    document.getElementById('meterIdInput').value = '';
+                    document.getElementById('meterValInput').value = '';
+                    fetchAdminSummary(); // รีเฟรชตารางตัวเลขทันที
+                } else {
+                    alert("❌ Error: " + result.error);
+                }
+            } catch(err) {
+                alert("ไม่สามารถเชื่อมต่อ Server ได้");
+            }
+        }
         // โหลดข้อมูลทันทีที่เปิดหน้า
         window.onload = fetchAdminSummary;
     </script>
 </body>
 </html>
+
