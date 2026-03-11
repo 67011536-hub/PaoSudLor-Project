@@ -111,7 +111,7 @@
     <main>
         <div class="card">
             <h2>Building Usage Summary</h2>
-            <p style="font-size: 0.85rem; color: var(--muted);">Data pulled from PostgreSQL on Render</p>
+            <p style="font-size: 0.85rem; color: var(--muted);">Data pulled from SQL Server on Render</p>
             <table id="usageTable">
                 <thead>
                     <tr>
@@ -145,10 +145,20 @@
     </main>
 
     <script>
+        // ✅ เพิ่มลิงก์ชี้ไปที่ Render ของคุณ
+        const API_BASE = 'https://paosudlor-project.onrender.com';
+
         // ฟังก์ชันดึงข้อมูลจาก API /api/admin-report ใน Server.js
         async function fetchAdminSummary() {
             try {
-                const resp = await fetch('/api/admin-report');
+                // ✅ แก้ให้ชี้ไปที่ Render
+                const resp = await fetch(`${API_BASE}/api/admin-report`);
+                
+                // ตรวจสอบว่ามี API นี้ใน Server หรือไม่
+                if (!resp.ok) {
+                    throw new Error('API Endpoint not found or Server Error');
+                }
+
                 const data = await resp.json();
                 
                 const tbody = document.getElementById('summaryBody');
@@ -166,9 +176,11 @@
                 tbody.appendChild(tr);
             } catch (err) {
                 console.error('Fetch Error:', err);
-                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:red;">Error connecting to API</td></tr>';
+                // แสดงข้อความให้รู้ว่ากำลังรอเพิ่ม API ในฝั่ง Server
+                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:#ff6b6b;">ยังไม่มีข้อมูล หรือกำลังรอเชื่อมต่อ API สรุปยอดใน Server.js</td></tr>';
             }
         }
+
         // ฟังก์ชันส่งข้อมูลไปให้ Server
         async function saveReading() {
             const meterId = document.getElementById('meterIdInput').value;
@@ -180,15 +192,22 @@
             }
 
             try {
-                const response = await fetch('/api/add-meter', {
+                // ✅ แก้ให้ชี้ไปที่ Render
+                const response = await fetch(`${API_BASE}/api/add-meter`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ meterId: meterId, kwhValue: kwhValue })
                 });
                 
+                // ถ้า API ฝั่ง Server ยังไม่รองรับการ Add Meter
+                if (!response.ok) {
+                    alert("❌ Server ยังไม่มี API สำหรับบันทึกข้อมูลนี้ (รอการเพิ่มใน Server.js)");
+                    return;
+                }
+
                 const result = await response.json();
                 if(result.success) {
-                    alert("✅ บันทึกข้อมูลสำเร็จ! ระบบสร้างบัญชีให้ห้องนี้แล้ว");
+                    alert("✅ บันทึกข้อมูลสำเร็จ! ระบบอัปเดตข้อมูลแล้ว");
                     document.getElementById('meterIdInput').value = '';
                     document.getElementById('meterValInput').value = '';
                     fetchAdminSummary(); // รีเฟรชตารางตัวเลขทันที
@@ -199,9 +218,9 @@
                 alert("ไม่สามารถเชื่อมต่อ Server ได้");
             }
         }
+        
         // โหลดข้อมูลทันทีที่เปิดหน้า
         window.onload = fetchAdminSummary;
     </script>
 </body>
 </html>
-
