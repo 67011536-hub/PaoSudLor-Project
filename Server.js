@@ -19,23 +19,37 @@ db.connect((err) => {
 });
 
 // ==========================================
-// ส่วนสร้างตารางจาก Database 4 ไฟล์ใหม่ (เวอร์ชัน PostgreSQL)
+// ส่วนจัดการ Database + ยัดข้อมูลผู้เช่า 37 ห้อง
 // ==========================================
 const initDb = async () => {
     try {
-        await db.query(`
-            -- ลบตารางเก่าทิ้งทั้งหมดเพื่อใช้โครงสร้างใหม่
-            DROP TABLE IF EXISTS Payments CASCADE;
-            DROP TABLE IF EXISTS Bills CASCADE;
-            DROP TABLE IF EXISTS Meter_Readings CASCADE;
-            DROP TABLE IF EXISTS Contracts CASCADE;
-            DROP TABLE IF EXISTS Rooms CASCADE;
-            DROP TABLE IF EXISTS Meters CASCADE;
-            DROP TABLE IF EXISTS users CASCADE;
-            DROP TABLE IF EXISTS Electric_Rates CASCADE;
+        // 1. ตรวจสอบว่าต้องลงข้อมูลจำลองหรือไม่ 
+        let shouldSeed = false;
+        try {
+            const check = await db.query("SELECT COUNT(*) FROM users");
+            if (parseInt(check.rows[0].count) <= 2) shouldSeed = true; // ถ้ามีแค่แอดมิน ให้รีเซ็ตใหม่
+        } catch (e) {
+            shouldSeed = true; // ถ้าเพิ่งรันครั้งแรก
+        }
 
-            -- 1. สร้างตาราง Users
-            CREATE TABLE users (
+        // ล้างกระดานเพื่อลงข้อมูลจากไฟล์ SQL ต้นฉบับ
+        if (shouldSeed) {
+            console.log("🧹 Clearing old data to seed 37 users...");
+            await db.query(`
+                DROP TABLE IF EXISTS Payments CASCADE;
+                DROP TABLE IF EXISTS Bills CASCADE;
+                DROP TABLE IF EXISTS Meter_Readings CASCADE;
+                DROP TABLE IF EXISTS Contracts CASCADE;
+                DROP TABLE IF EXISTS Rooms CASCADE;
+                DROP TABLE IF EXISTS Meters CASCADE;
+                DROP TABLE IF EXISTS users CASCADE;
+                DROP TABLE IF EXISTS Electric_Rates CASCADE;
+            `);
+        }
+
+        // 2. สร้างโครงสร้างตาราง
+        await db.query(`
+            CREATE TABLE IF NOT EXISTS users (
                 user_id SERIAL PRIMARY KEY,
                 name VARCHAR(100) NOT NULL,
                 role VARCHAR(20) CHECK (role IN ('Owner','Tenant','Admin')),
@@ -44,8 +58,7 @@ const initDb = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
-            -- 2. สร้างตาราง Meters
-            CREATE TABLE Meters (
+            CREATE TABLE IF NOT EXISTS Meters (
                 meter_id SERIAL PRIMARY KEY,
                 meter_type VARCHAR(10) DEFAULT '1P',
                 serial_number VARCHAR(100) UNIQUE NOT NULL,
@@ -53,8 +66,7 @@ const initDb = async () => {
                 status VARCHAR(20) DEFAULT 'Active'
             );
 
-            -- 3. สร้างตาราง Rooms
-            CREATE TABLE Rooms (
+            CREATE TABLE IF NOT EXISTS Rooms (
                 room_id SERIAL PRIMARY KEY,
                 room_number VARCHAR(10) UNIQUE NOT NULL,
                 floor INT NOT NULL,
@@ -62,8 +74,7 @@ const initDb = async () => {
                 meter_id INT NOT NULL REFERENCES Meters(meter_id)
             );
 
-            -- 4. สร้างตาราง Contracts (สัญญาเช่า)
-            CREATE TABLE Contracts (
+            CREATE TABLE IF NOT EXISTS Contracts (
                 contract_id SERIAL PRIMARY KEY,
                 user_id INT NOT NULL REFERENCES users(user_id),
                 room_id INT NOT NULL REFERENCES Rooms(room_id),
@@ -72,16 +83,14 @@ const initDb = async () => {
                 status VARCHAR(20) DEFAULT 'Active'
             );
 
-            -- 5. สร้างตาราง Meter_Readings
-            CREATE TABLE Meter_Readings (
+            CREATE TABLE IF NOT EXISTS Meter_Readings (
                 reading_id SERIAL PRIMARY KEY,
                 meter_id INT NOT NULL REFERENCES Meters(meter_id),
                 kwh_value DECIMAL(10,2) NOT NULL,
                 reading_date DATE NOT NULL
             );
 
-            -- 6. สร้างตาราง Bills
-            CREATE TABLE Bills (
+            CREATE TABLE IF NOT EXISTS Bills (
                 bill_id SERIAL PRIMARY KEY,
                 contract_id INT NOT NULL REFERENCES Contracts(contract_id),
                 billing_month DATE NOT NULL,
@@ -94,8 +103,7 @@ const initDb = async () => {
                 late_fee DECIMAL(10,2) DEFAULT 0
             );
 
-            -- 7. สร้างตาราง Payments
-            CREATE TABLE Payments (
+            CREATE TABLE IF NOT EXISTS Payments (
                 payment_id SERIAL PRIMARY KEY,
                 bill_id INT NOT NULL REFERENCES Bills(bill_id),
                 payment_date DATE,
@@ -103,9 +111,6 @@ const initDb = async () => {
                 status VARCHAR(20) DEFAULT 'pending'
             );
 
-            -- ===============================================
-            -- สร้าง Views สรุปยอด (เหมือนในไฟล์ 1)
-            -- ===============================================
             CREATE OR REPLACE VIEW admin_energy_report AS
             SELECT 
                 COALESCE(SUM(units_used), 0) AS total_units,
@@ -117,9 +122,6 @@ const initDb = async () => {
                 FROM Meter_Readings GROUP BY meter_id
             ) AS usage_data;
 
-            -- ===============================================
-            -- สร้าง Trigger คิดค่าปรับอัตโนมัติไม่เกิน 500 (เหมือนในไฟล์ 3)
-            -- ===============================================
             CREATE OR REPLACE FUNCTION calculate_late_fee() RETURNS TRIGGER AS $$
             BEGIN
                 IF NEW.status = 'success' AND NEW.payment_date IS NOT NULL THEN
@@ -140,20 +142,69 @@ const initDb = async () => {
             CREATE TRIGGER trg_CalculateLateFee
             AFTER UPDATE ON Payments
             FOR EACH ROW EXECUTE FUNCTION calculate_late_fee();
-
-            -- ===============================================
-            -- เพิ่มข้อมูลเริ่มต้น (แอดมิน และ คุณสมชาย ห้อง 101)
-            -- ===============================================
-            INSERT INTO users (name, role, username, password_hash) VALUES 
-            ('Admin', 'Admin', 'admin', '1234'),
-            ('Somchai', 'Tenant', 'somchai01', '1234') ON CONFLICT (username) DO NOTHING;
-
-            INSERT INTO Meters (serial_number, install_date) VALUES ('MTR101', CURRENT_DATE) ON CONFLICT DO NOTHING;
-            INSERT INTO Rooms (room_number, floor, status, meter_id) VALUES ('101', 1, 'Occupied', 1) ON CONFLICT DO NOTHING;
-            INSERT INTO Contracts (user_id, room_id, start_date) VALUES (2, 1, CURRENT_DATE) ON CONFLICT DO NOTHING;
-
         `);
-        console.log('✅ New Professional Database (4 files mapped) Initialized Successfully!');
+
+        // 3. ยัดข้อมูลจำลอง 37 ห้อง
+        if (shouldSeed) {
+            console.log('🌱 Seeding 37 Users and Meter Readings...');
+            
+            await db.query(`INSERT INTO users (name, role, username, password_hash) VALUES ('Admin', 'Admin', 'admin', '1234');`);
+
+            // ดึงรายชื่อจากไฟล์ ของจริ้ง.sql
+            const tenantNames = ['Somchai','Suda','Anan','Pim','Niran','Malee','Krit','Dao','Manop','Nok','Prasit','Chan','Wipa','Sakda','Arisa','Tawin','Kanya','Phon','Siri','Napat','Preecha','Orn','Chai','Ploy','Veera','Mint','Thanakorn','Ying','Somsak','Nicha','Wichai','Fon','Korn','Jane','Tom','Aom','Pimnara'];
+            
+            // สร้าง Users ผู้เช่า
+            let usersInsert = "INSERT INTO users (name, role, username, password_hash) VALUES ";
+            let userVals = [];
+            for(let i=0; i<37; i++) {
+                const idx = (i+1).toString().padStart(2, '0');
+                userVals.push(`('${tenantNames[i]}', 'Tenant', '${tenantNames[i].toLowerCase()}${idx}', '1234')`);
+            }
+            await db.query(usersInsert + userVals.join(', ') + ";");
+
+            // สร้าง Meters & Rooms (40 ห้อง)
+            let meterVals = [];
+            let roomVals = [];
+            let roomId = 101;
+            let mId = 1;
+            for(let i=1; i<=20; i++) {
+                meterVals.push(`('MTR${roomId}', CURRENT_DATE)`);
+                roomVals.push(`('${roomId}', 1, '${i<=17 ? 'Occupied' : 'Vacant'}', ${mId})`);
+                roomId++; mId++;
+            }
+            roomId = 201;
+            for(let i=1; i<=20; i++) {
+                meterVals.push(`('MTR${roomId}', CURRENT_DATE)`);
+                roomVals.push(`('${roomId}', 2, 'Occupied', ${mId})`);
+                roomId++; mId++;
+            }
+            await db.query("INSERT INTO Meters (serial_number, install_date) VALUES " + meterVals.join(', ') + ";");
+            await db.query("INSERT INTO Rooms (room_number, floor, status, meter_id) VALUES " + roomVals.join(', ') + ";");
+
+            // สร้าง Contracts (สัญญาเช่า 37 ห้อง)
+            let contractVals = [];
+            for(let i=1; i<=37; i++) {
+                contractVals.push(`(${i+1}, ${i}, '2026-01-01')`);
+            }
+            await db.query("INSERT INTO Contracts (user_id, room_id, start_date) VALUES " + contractVals.join(', ') + ";");
+
+            // สร้างประวัติการจดมิเตอร์ (จำลองการใช้ไฟของทั้ง 37 ห้อง)
+            let readingVals = [];
+            for(let i=1; i<=37; i++) {
+                const startVal = Math.floor(Math.random() * 50) + 1; // สุ่มเลขต้นเดือน
+                const usage = Math.floor(Math.random() * 150) + 80;  // สุ่มใช้ไฟไป 80-230 หน่วย
+                const endVal = startVal + usage;
+
+                readingVals.push(`(${i}, ${startVal}, '2026-01-01')`);
+                readingVals.push(`(${i}, ${endVal}, '2026-01-31')`);
+            }
+            await db.query("INSERT INTO Meter_Readings (meter_id, kwh_value, reading_date) VALUES " + readingVals.join(', ') + ";");
+
+            console.log('✅ 37 Users and their Meter Readings seeded successfully! Ready for Dashboard!');
+        } else {
+            console.log('✅ Database already populated. Skipping seed.');
+        }
+
     } catch (err) {
         console.error('❌ Database init error:', err.message);
     }
@@ -161,7 +212,7 @@ const initDb = async () => {
 
 initDb();
 
-// 1. API สำหรับ Login (ใช้คอลัมน์ใหม่ password_hash)
+// 1. API สำหรับ Login
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -171,7 +222,7 @@ app.post('/api/login', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. API สำหรับหน้า Homepage (ต้องดึงข้อมูลทะลุผ่าน Contracts -> Rooms -> Meters)
+// 2. API สำหรับหน้า Homepage 
 app.get('/api/meter-status', async (req, res) => {
     const username = req.query.user;
     try {
@@ -204,14 +255,12 @@ app.get('/api/admin-report', async (req, res) => {
 
 // 4. API สำหรับรับข้อมูลมิเตอร์
 app.post('/api/add-meter', async (req, res) => {
-    const { meterId, kwhValue } = req.body; // สมมติว่า meterId รับมาเป็นเลขห้องเช่น 101 หรือ 102
+    const { meterId, kwhValue } = req.body; 
     try {
-        // หาว่าเลขห้องนี้ใช้มิเตอร์เบอร์อะไร
         const roomRes = await db.query('SELECT meter_id FROM Rooms WHERE room_number = $1', [meterId.toString()]);
         let actualMeterId;
         
         if (roomRes.rows.length === 0) {
-            // ถ้าแอดมินจดห้องที่ยังไม่มีในระบบ ให้สร้างผูก โครงสร้างใหม่(มิเตอร์+ห้อง+สัญญาเช่า) ให้เลย
             const newMeter = await db.query("INSERT INTO Meters (serial_number) VALUES ($1) RETURNING meter_id", [`MTR${meterId}`]);
             actualMeterId = newMeter.rows[0].meter_id;
             const newRoom = await db.query("INSERT INTO Rooms (room_number, floor, meter_id) VALUES ($1, 1, $2) RETURNING room_id", [meterId.toString(), actualMeterId]);
@@ -221,7 +270,6 @@ app.post('/api/add-meter', async (req, res) => {
             actualMeterId = roomRes.rows[0].meter_id;
         }
 
-        // บันทึกค่าไฟลง Meter_Readings
         await db.query('INSERT INTO Meter_Readings (meter_id, reading_date, kwh_value) VALUES ($1, CURRENT_DATE, $2)', [actualMeterId, kwhValue]);
         
         res.json({ success: true, message: 'บันทึกสำเร็จ!' });
