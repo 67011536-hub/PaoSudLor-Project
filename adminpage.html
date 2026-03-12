@@ -33,7 +33,6 @@
 
         main { padding: 30px; max-width: 1400px; margin: 0 auto; }
 
-        /* Filter Section */
         .filter-card {
             background: var(--white);
             padding: 20px;
@@ -70,7 +69,6 @@
             font-weight: 600;
         }
 
-        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -88,14 +86,13 @@
         }
 
         .stat-card .label { font-size: 13px; opacity: 0.9; }
-        .stat-card .value { font-size: 24px; font-weight: 700; margin-top: 5px; }
+        .stat-card .value { font-size: 22px; font-weight: 700; margin-top: 5px; word-break: break-all; }
 
         .bg-blue { background: #5677db; }
         .bg-orange { background: #ffb84d; }
         .bg-green { background: #4ecb71; }
         .bg-red { background: #f26464; }
 
-        /* Table Section */
         .table-card {
             background: var(--white);
             padding: 20px;
@@ -198,18 +195,16 @@
     const API_BASE = 'https://paosudlor-project.onrender.com';
     let allRoomsData = [];
 
-    // ฟังก์ชันสร้างปี 2020-2026
+    // สร้างตัวเลือกปี 2020 - 2026
     function setupYearFilter() {
         const yearSelect = document.getElementById('yearFilter');
         for (let y = 2026; y >= 2020; y--) {
             let opt = document.createElement('option');
-            opt.value = y;
-            opt.innerHTML = y;
+            opt.value = y; opt.innerHTML = y;
             yearSelect.appendChild(opt);
         }
     }
 
-    // ดึงข้อมูล
     async function loadData() {
         try {
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
@@ -217,26 +212,27 @@
             renderTable();
             updateSummary();
         } catch (err) {
-            console.error(err);
+            console.error("Fetch error:", err);
+            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="text-align:center; color:red;">Failed to load data.</td></tr>';
         }
     }
 
-    // แสดงผลตาราง (รองรับ Filter ชั้น และการคำนวณ Rate)
     function renderTable() {
         const tbody = document.getElementById('allRoomsBody');
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         const floorFilter = document.getElementById('floorFilter').value;
         tbody.innerHTML = '';
 
-        const filteredData = allRoomsData.filter(room => {
+        const filtered = allRoomsData.filter(room => {
             const floor = room.room_number.toString().charAt(0);
             return floorFilter === 'all' || floor === floorFilter;
         });
 
-        filteredData.forEach(room => {
+        filtered.forEach(room => {
             const floor = room.room_number.toString().charAt(0);
-            const providerCost = room.units_used * 4.5;
-            const tenantCost = room.units_used * rate;
+            const units = Number(room.units_used) || 0; // แก้ไขให้เป็นตัวเลขเสมอ
+            const providerCost = units * 4.5;
+            const tenantCost = units * rate;
             const profit = tenantCost - providerCost;
 
             const tr = document.createElement('tr');
@@ -244,7 +240,7 @@
                 <td>${floor}</td>
                 <td><strong>${room.room_number}</strong></td>
                 <td>${room.room_number}</td>
-                <td>${room.units_used.toLocaleString()}</td>
+                <td>${units.toLocaleString()}</td>
                 <td>${tenantCost.toLocaleString()}</td>
                 <td>0</td>
                 <td>${tenantCost.toLocaleString()}</td>
@@ -255,18 +251,19 @@
             `;
             tbody.appendChild(tr);
         });
-        document.getElementById('statRooms').innerText = filteredData.length;
+        document.getElementById('statRooms').innerText = filtered.length;
     }
 
-    // อัปเดตกล่องตัวเลขด้านบน
     function updateSummary() {
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         let totalUnits = 0, totalIncome = 0, totalCost = 0;
 
         allRoomsData.forEach(room => {
-            totalUnits += room.units_used;
-            totalIncome += (room.units_used * rate);
-            totalCost += (room.units_used * 4.5);
+            // บังคับให้เป็น Number เพื่อป้องกันการนำเลขมาเขียนต่อกัน
+            const units = Number(room.units_used) || 0; 
+            totalUnits += units;
+            totalIncome += (units * rate);
+            totalCost += (units * 4.5);
         });
 
         document.getElementById('statUnits').innerText = totalUnits.toLocaleString() + ' kWh';
