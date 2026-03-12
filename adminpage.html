@@ -67,6 +67,7 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
+            transition: 0.3s;
         }
 
         .stats-grid {
@@ -86,7 +87,7 @@
         }
 
         .stat-card .label { font-size: 13px; opacity: 0.9; }
-        .stat-card .value { font-size: 22px; font-weight: 700; margin-top: 5px; word-break: break-all; }
+        .stat-card .value { font-size: 22px; font-weight: 700; margin-top: 5px; }
 
         .bg-blue { background: #5677db; }
         .bg-orange { background: #ffb84d; }
@@ -158,7 +159,7 @@
 
     <div class="stats-grid">
         <div class="stat-card bg-blue">
-            <span class="label">Total Rooms</span>
+            <span class="label">Filtered Rooms</span>
             <span class="value" id="statRooms">0</span>
         </div>
         <div class="stat-card bg-orange">
@@ -195,7 +196,6 @@
     const API_BASE = 'https://paosudlor-project.onrender.com';
     let allRoomsData = [];
 
-    // สร้างตัวเลือกปี 2020 - 2026
     function setupYearFilter() {
         const yearSelect = document.getElementById('yearFilter');
         for (let y = 2026; y >= 2020; y--) {
@@ -209,31 +209,42 @@
         try {
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             allRoomsData = await resp.json();
-            renderTable();
-            updateSummary();
+            processAndRender(); // เรียกใช้ฟังก์ชันรวมที่จัดการทั้ง Filter และ Stats
         } catch (err) {
-            console.error("Fetch error:", err);
-            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="text-align:center; color:red;">Failed to load data.</td></tr>';
+            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="text-align:center; color:red;">Connection Error</td></tr>';
         }
     }
 
-    function renderTable() {
+    // ฟังก์ชันหลักที่ทำงานทุกครั้งที่กด Apply หรือ Recalculate
+    function processAndRender() {
         const tbody = document.getElementById('allRoomsBody');
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         const floorFilter = document.getElementById('floorFilter').value;
+        
         tbody.innerHTML = '';
 
+        // 1. กรองข้อมูลตามชั้นที่เลือก
         const filtered = allRoomsData.filter(room => {
             const floor = room.room_number.toString().charAt(0);
             return floorFilter === 'all' || floor === floorFilter;
         });
 
+        // 2. ตัวแปรเก็บยอดรวม (สะสมเฉพาะข้อมูลที่ผ่านการกรอง)
+        let totalUnits = 0;
+        let totalRevenue = 0;
+        let totalProfit = 0;
+
         filtered.forEach(room => {
             const floor = room.room_number.toString().charAt(0);
-            const units = Number(room.units_used) || 0; // แก้ไขให้เป็นตัวเลขเสมอ
+            const units = Number(room.units_used) || 0;
             const providerCost = units * 4.5;
             const tenantCost = units * rate;
             const profit = tenantCost - providerCost;
+
+            // บวกยอดรวมเฉพาะห้องที่แสดงผล
+            totalUnits += units;
+            totalRevenue += tenantCost;
+            totalProfit += profit;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -251,28 +262,17 @@
             `;
             tbody.appendChild(tr);
         });
+
+        // 3. อัปเดตกล่อง Stats ทั้ง 4 กล่องให้ตรงกับข้อมูลที่กรองแล้ว
         document.getElementById('statRooms').innerText = filtered.length;
-    }
-
-    function updateSummary() {
-        const rate = parseFloat(document.getElementById('rateInput').value) || 8;
-        let totalUnits = 0, totalIncome = 0, totalCost = 0;
-
-        allRoomsData.forEach(room => {
-            // บังคับให้เป็น Number เพื่อป้องกันการนำเลขมาเขียนต่อกัน
-            const units = Number(room.units_used) || 0; 
-            totalUnits += units;
-            totalIncome += (units * rate);
-            totalCost += (units * 4.5);
-        });
-
         document.getElementById('statUnits').innerText = totalUnits.toLocaleString() + ' kWh';
-        document.getElementById('statIncome').innerText = totalIncome.toLocaleString() + ' ฿';
-        document.getElementById('statProfit').innerText = (totalIncome - totalCost).toLocaleString() + ' ฿';
+        document.getElementById('statIncome').innerText = totalRevenue.toLocaleString() + ' ฿';
+        document.getElementById('statProfit').innerText = totalProfit.toLocaleString() + ' ฿';
     }
 
-    function recalculateAll() { renderTable(); updateSummary(); }
-    function applyFilters() { renderTable(); }
+    // ปุ่มกดใช้งานฟังก์ชันรวม
+    function recalculateAll() { processAndRender(); }
+    function applyFilters() { processAndRender(); }
 
     window.onload = () => {
         setupYearFilter();
