@@ -29,7 +29,6 @@
             outline: none; color: var(--text-dark); min-width: 140px;
         }
 
-        /* เน้นช่องใส่ค่าไฟ */
         #rateInput { background: #fffdf0; border: 1px solid #ffcb80; font-weight: 700; color: #f57c00; }
 
         .btn-apply {
@@ -53,8 +52,12 @@
         th { text-align: left; padding: 15px 12px; color: var(--text-gray); border-bottom: 1px solid #e0e5f2; }
         td { padding: 15px 12px; border-bottom: 1px solid #f4f7fe; }
 
+        /* Status Badges */
         .badge-unpaid { background: #ffebeb; color: #ff5b5b; padding: 4px 10px; border-radius: 10px; font-weight: 600; }
-        .btn-paid { background: #2b3674; color: white; border: none; padding: 6px 12px; border-radius: 15px; cursor: pointer; }
+        .badge-paid { background: #e6fff1; color: #219653; padding: 4px 10px; border-radius: 10px; font-weight: 600; }
+        
+        .btn-paid { background: #2b3674; color: white; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .btn-paid:disabled { background: #a3aed0; cursor: not-allowed; opacity: 0.7; }
     </style>
 </head>
 <body>
@@ -69,14 +72,6 @@
 
     <div class="filter-card">
         <div class="filter-row">
-            <div class="filter-group">
-                <label>Year</label>
-                <select id="yearFilter"><option value="2026">2026</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Month</label>
-                <select id="monthFilter"><option value="1">January</option></select>
-            </div>
             <div class="filter-group">
                 <label>Floor</label>
                 <select id="floorFilter" onchange="processAndRender()">
@@ -105,12 +100,12 @@
             <thead>
                 <tr>
                     <th>FLOOR</th><th>ROOM</th><th>METER</th><th>UNITS (kWh)</th>
-                    <th>TENANT COST (฿)</th><th>FINE (฿)</th><th>TOTAL (฿)</th>
+                    <th>TENANT COST (฿)</th><th>TOTAL (฿)</th>
                     <th>PROVIDER COST (฿)</th><th>PROFIT (฿)</th><th>STATUS</th><th>ACTION</th>
                 </tr>
             </thead>
             <tbody id="allRoomsBody">
-                <tr><td colspan="11" style="text-align:center;">Loading data...</td></tr>
+                <tr><td colspan="10" style="text-align:center;">Loading data...</td></tr>
             </tbody>
         </table>
     </div>
@@ -125,13 +120,19 @@
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             allRoomsData = await resp.json();
             
-            // ดึงค่า Rate เดิมที่เคยตั้งไว้ (ถ้ามี)
             const savedRate = localStorage.getItem('utilityRate');
             if (savedRate) document.getElementById('rateInput').value = savedRate;
 
             processAndRender();
         } catch (err) {
-            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="text-align:center; color:red;">Connection Error</td></tr>';
+            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="10" style="text-align:center; color:red;">Connection Error</td></tr>';
+        }
+    }
+
+    function markAsPaid(roomNumber) {
+        if (confirm(`Confirm payment for Room ${roomNumber}?`)) {
+            localStorage.setItem(`paymentStatus_${roomNumber}`, 'Paid');
+            processAndRender(); 
         }
     }
 
@@ -140,7 +141,6 @@
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         const floorFilter = document.getElementById('floorFilter').value;
         
-        // บันทึกลง localStorage ทันทีที่กดปุ่มเพื่อให้หน้า Tenant ดึงไปใช้
         localStorage.setItem('utilityRate', rate);
 
         tbody.innerHTML = '';
@@ -154,6 +154,9 @@
             const providerCost = units * 4.5; 
             const tenantCost = units * rate; 
             const profit = tenantCost - providerCost;
+            
+            // ตรวจสอบสถานะการจ่ายเงิน
+            const isPaid = localStorage.getItem(`paymentStatus_${room.room_number}`) === 'Paid';
 
             totalUnits += units;
             totalRevenue += tenantCost;
@@ -167,12 +170,15 @@
                 <td>${room.room_number}</td>
                 <td>${units.toFixed(2)}</td>
                 <td>${tenantCost.toLocaleString()}</td>
-                <td>0</td>
                 <td>${tenantCost.toLocaleString()}</td>
                 <td style="color:#a3aed0">${providerCost.toLocaleString()}</td>
-                <td style="color:${profit >= 0 ? '#4ecb71' : '#f26464'}; font-weight:600">${profit.toLocaleString()}</td>
-                <td><span class="badge-unpaid">Unpaid</span></td>
-                <td><button class="btn-paid">Mark as Paid</button></td>
+                <td style="color:#4ecb71; font-weight:600">${profit.toLocaleString()}</td>
+                <td><span class="${isPaid ? 'badge-paid' : 'badge-unpaid'}">${isPaid ? 'Paid' : 'Unpaid'}</span></td>
+                <td>
+                    <button class="btn-paid" onclick="markAsPaid('${room.room_number}')" ${isPaid ? 'disabled' : ''}>
+                        ${isPaid ? 'Completed' : 'Mark as Paid'}
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
