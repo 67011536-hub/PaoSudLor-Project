@@ -33,7 +33,6 @@
 
         main { padding: 30px; max-width: 1400px; margin: 0 auto; }
 
-        /* Filter Section */
         .filter-card {
             background: var(--white);
             padding: 20px;
@@ -57,6 +56,7 @@
             border-radius: 10px;
             outline: none;
             color: var(--text-dark);
+            min-width: 120px;
         }
 
         .btn-apply {
@@ -67,9 +67,10 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
+            transition: 0.3s;
         }
+        .btn-apply:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -78,7 +79,6 @@
         }
 
         .stat-card {
-            background: var(--white);
             padding: 20px;
             border-radius: 15px;
             box-shadow: var(--shadow);
@@ -95,33 +95,28 @@
         .bg-green { background: #4ecb71; }
         .bg-red { background: #f26464; }
 
-        /* Table Section */
         .table-card {
             background: var(--white);
             padding: 20px;
             border-radius: 15px;
             box-shadow: var(--shadow);
-            overflow: hidden;
+            overflow-x: auto;
         }
 
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { 
-            text-align: left; 
-            padding: 12px; 
-            color: var(--text-gray); 
-            border-bottom: 1px solid #e0e5f2;
-            font-weight: 600;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1000px; }
+        th { text-align: left; padding: 12px; color: var(--text-gray); border-bottom: 1px solid #e0e5f2; font-weight: 600; }
         td { padding: 15px 12px; border-bottom: 1px solid #f4f7fe; }
 
         .badge-unpaid { background: #ffebeb; color: #ff5b5b; padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 11px; }
         .btn-paid { background: #2b3674; color: white; border: none; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; }
+
+        .add-reading-section { margin-top: 25px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: 600;">Com Info - Admin</div>
+    <div style="font-weight: 600;">Com Info - Admin Control</div>
     <a href="sign in.html" style="color: white; text-decoration: none; font-size: 13px;">Logout</a>
 </header>
 
@@ -131,36 +126,44 @@
     <div class="filter-card">
         <div class="filter-row">
             <div class="filter-group">
-                <label>Period</label>
-                <select><option>ม.ค. 2569</option></select>
-            </div>
-            <div class="filter-group">
                 <label>Year</label>
-                <select><option>2026</option></select>
+                <select id="yearFilter"></select>
             </div>
             <div class="filter-group">
                 <label>Month</label>
-                <select><option>January</option></select>
+                <select id="monthFilter">
+                    <option value="1">January</option><option value="2">February</option>
+                    <option value="3">March</option><option value="4">April</option>
+                    <option value="5">May</option><option value="6">June</option>
+                    <option value="7">July</option><option value="8">August</option>
+                    <option value="9">September</option><option value="10">October</option>
+                    <option value="11">November</option><option value="12">December</option>
+                </select>
             </div>
             <div class="filter-group">
                 <label>Floor</label>
-                <select><option>All Floors</option></select>
+                <select id="floorFilter">
+                    <option value="all">All Floors</option>
+                    <option value="1">Floor 1</option>
+                    <option value="2">Floor 2</option>
+                    <option value="3">Floor 3</option>
+                </select>
             </div>
-            <button class="btn-apply">Apply Filter</button>
+            <button class="btn-apply" onclick="applyFilters()">Apply Filter</button>
         </div>
-        <div class="filter-row" style="margin-top: 15px;">
+        <div class="filter-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f4f7fe;">
             <div class="filter-group">
                 <label>Utility Rate (฿/kWh)</label>
-                <input type="number" value="8" id="rateInput">
+                <input type="number" value="8" id="rateInput" step="0.1">
             </div>
-            <button class="btn-apply" style="background: #f4f7fe; color: #2b3674; border: 1px solid #e0e5f2;" onclick="loadAllData()">Recalculate</button>
+            <button class="btn-apply" style="background: #f4f7fe; color: #2b3674; border: 1px solid #e0e5f2;" onclick="recalculateAll()">Recalculate</button>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card bg-blue">
             <span class="label">Total Rooms</span>
-            <span class="value" id="statRooms">37</span>
+            <span class="value" id="statRooms">0</span>
         </div>
         <div class="stat-card bg-orange">
             <span class="label">Total Units Used</span>
@@ -180,71 +183,132 @@
         <table>
             <thead>
                 <tr>
-                    <th>FLOOR</th>
-                    <th>ROOM</th>
-                    <th>METER</th>
-                    <th>UNITS (kWh)</th>
-                    <th>TENANT COST (฿)</th>
-                    <th>FINE (฿)</th>
-                    <th>TOTAL (฿)</th>
-                    <th>PROVIDER COST (฿)</th>
-                    <th>PROFIT (฿)</th>
-                    <th>STATUS</th>
-                    <th>ACTION</th>
+                    <th>FLOOR</th><th>ROOM</th><th>METER</th><th>UNITS (kWh)</th>
+                    <th>TENANT COST (฿)</th><th>FINE (฿)</th><th>TOTAL (฿)</th>
+                    <th>PROVIDER COST (฿)</th><th>PROFIT (฿)</th><th>STATUS</th><th>ACTION</th>
                 </tr>
             </thead>
             <tbody id="allRoomsBody">
-                </tbody>
+                <tr><td colspan="11" style="text-align:center;">Loading data...</td></tr>
+            </tbody>
         </table>
+    </div>
+
+    <div class="filter-card add-reading-section">
+        <h3 style="margin-top:0;">Add Monthly Reading</h3>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Meter ID (Room)</label>
+                <input type="number" id="meterIdInput" placeholder="e.g. 101">
+            </div>
+            <div class="filter-group">
+                <label>Current Reading (kWh)</label>
+                <input type="number" id="meterValInput" placeholder="e.g. 1250">
+            </div>
+            <button class="btn-apply" onclick="saveReading()">Save Reading</button>
+        </div>
     </div>
 </main>
 
 <script>
     const API_BASE = 'https://paosudlor-project.onrender.com';
+    let allRoomsData = [];
 
-    async function loadAllData() {
-        try {
-            // ดึงข้อมูลรายงานสรุป
-            const reportResp = await fetch(`${API_BASE}/api/admin-report`);
-            const reportData = await reportResp.json();
-            
-            document.getElementById('statUnits').innerText = (reportData.total_units || 0).toLocaleString() + ' kWh';
-            document.getElementById('statIncome').innerText = (reportData.income_from_tenants || 0).toLocaleString() + ' ฿';
-            document.getElementById('statProfit').innerText = (reportData.profit || 0).toLocaleString() + ' ฿';
-
-            // ดึงข้อมูลรายห้อง
-            const roomsResp = await fetch(`${API_BASE}/api/admin-all-rooms`);
-            const roomsData = await roomsResp.json();
-            const tbody = document.getElementById('allRoomsBody');
-            tbody.innerHTML = '';
-
-            roomsData.forEach(room => {
-                const tr = document.createElement('tr');
-                const providerCost = room.units_used * 4.5; // ตัวอย่างค่าไฟ PEA 4.5 บาท
-                const tenantCost = room.units_used * 8;
-                const profit = tenantCost - providerCost;
-
-                tr.innerHTML = `
-                    <td>${room.room_number.toString().charAt(0)}</td>
-                    <td>${room.room_number}</td>
-                    <td>${room.room_number}</td>
-                    <td>${room.units_used}</td>
-                    <td>${tenantCost.toLocaleString()}</td>
-                    <td>0</td>
-                    <td>${tenantCost.toLocaleString()}</td>
-                    <td style="color:#a3aed0">${providerCost.toLocaleString()}</td>
-                    <td style="color:#4ecb71; font-weight:600">${profit.toLocaleString()}</td>
-                    <td><span class="badge-unpaid">Unpaid</span></td>
-                    <td><button class="btn-paid">Mark as Paid</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } catch (err) {
-            console.error(err);
+    // สร้างตัวเลือกปี 2020 - 2026
+    function setupYearFilter() {
+        const yearSelect = document.getElementById('yearFilter');
+        for (let y = 2026; y >= 2020; y--) {
+            let opt = document.createElement('option');
+            opt.value = y; opt.innerHTML = y;
+            yearSelect.appendChild(opt);
         }
     }
 
-    window.onload = loadAllData;
+    async function loadData() {
+        try {
+            const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
+            allRoomsData = await resp.json();
+            renderTable();
+            updateSummary();
+        } catch (err) {
+            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="color:red; text-align:center;">Error connecting to server</td></tr>';
+        }
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('allRoomsBody');
+        const rate = parseFloat(document.getElementById('rateInput').value) || 8;
+        const floorFilter = document.getElementById('floorFilter').value;
+        tbody.innerHTML = '';
+
+        const filtered = allRoomsData.filter(room => {
+            const floor = room.room_number.toString().charAt(0);
+            return floorFilter === 'all' || floor === floorFilter;
+        });
+
+        filtered.forEach(room => {
+            const floor = room.room_number.toString().charAt(0);
+            const providerCost = room.units_used * 4.5;
+            const tenantCost = room.units_used * rate;
+            const profit = tenantCost - providerCost;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${floor}</td>
+                <td><strong>${room.room_number}</strong></td>
+                <td>${room.room_number}</td>
+                <td>${room.units_used.toLocaleString()}</td>
+                <td>${tenantCost.toLocaleString()}</td>
+                <td>0</td>
+                <td>${tenantCost.toLocaleString()}</td>
+                <td style="color:#a3aed0">${providerCost.toLocaleString()}</td>
+                <td style="color:${profit >= 0 ? '#4ecb71' : '#f26464'}; font-weight:600">${profit.toLocaleString()}</td>
+                <td><span class="badge-unpaid">Unpaid</span></td>
+                <td><button class="btn-paid">Mark as Paid</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('statRooms').innerText = filtered.length;
+    }
+
+    function updateSummary() {
+        const rate = parseFloat(document.getElementById('rateInput').value) || 8;
+        let totalUnits = 0, totalIncome = 0, totalCost = 0;
+
+        allRoomsData.forEach(room => {
+            totalUnits += room.units_used;
+            totalIncome += (room.units_used * rate);
+            totalCost += (room.units_used * 4.5);
+        });
+
+        document.getElementById('statUnits').innerText = totalUnits.toLocaleString() + ' kWh';
+        document.getElementById('statIncome').innerText = totalIncome.toLocaleString() + ' ฿';
+        document.getElementById('statProfit').innerText = (totalIncome - totalCost).toLocaleString() + ' ฿';
+    }
+
+    function recalculateAll() { renderTable(); updateSummary(); }
+    function applyFilters() { renderTable(); }
+
+    async function saveReading() {
+        const meterId = document.getElementById('meterIdInput').value;
+        const kwhValue = document.getElementById('meterValInput').value;
+        if(!meterId || !kwhValue) return alert("Please fill all fields");
+
+        try {
+            const response = await fetch(`${API_BASE}/api/add-meter`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ meterId, kwhValue })
+            });
+            const result = await response.json();
+            if(result.success) {
+                alert("Saved!");
+                loadData();
+            } else alert("Error: " + result.error);
+        } catch(err) { alert("Server Error"); }
+    }
+
+    window.onload = () => { setupYearFilter(); loadData(); };
 </script>
 </body>
 </html>
