@@ -15,23 +15,11 @@
             --shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
         }
 
-        body {
-            margin: 0; font-family: 'Inter', sans-serif;
-            background-color: var(--bg-body); color: var(--text-dark);
-        }
-
-        header {
-            background: #345da7; color: white; padding: 15px 30px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
+        body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg-body); color: var(--text-dark); }
+        header { background: #345da7; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
         main { padding: 30px; max-width: 1400px; margin: 0 auto; }
 
-        .filter-card {
-            background: var(--white); padding: 25px; border-radius: 15px;
-            box-shadow: var(--shadow); margin-bottom: 25px;
-        }
-
+        .filter-card { background: var(--white); padding: 25px; border-radius: 15px; box-shadow: var(--shadow); margin-bottom: 25px; }
         .filter-row { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
         .filter-group { display: flex; flex-direction: column; gap: 8px; }
         .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-gray); text-transform: uppercase; }
@@ -41,7 +29,7 @@
             outline: none; color: var(--text-dark); min-width: 140px;
         }
 
-        /* เน้นช่องใส่ค่าไฟให้เห็นชัดๆ */
+        /* เน้นช่องใส่ค่าไฟ */
         #rateInput { background: #fffdf0; border: 1px solid #ffcb80; font-weight: 700; color: #f57c00; }
 
         .btn-apply {
@@ -50,15 +38,8 @@
         }
         .btn-apply:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px; margin-bottom: 25px;
-        }
-
-        .stat-card {
-            padding: 20px; border-radius: 15px; box-shadow: var(--shadow);
-            display: flex; flex-direction: column; color: white;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .stat-card { padding: 20px; border-radius: 15px; box-shadow: var(--shadow); display: flex; flex-direction: column; color: white; }
         .stat-card .label { font-size: 13px; opacity: 0.9; }
         .stat-card .value { font-size: 24px; font-weight: 700; margin-top: 5px; }
 
@@ -67,11 +48,7 @@
         .bg-green { background: #4ecb71; }
         .bg-red { background: #f26464; }
 
-        .table-card {
-            background: var(--white); padding: 20px; border-radius: 15px;
-            box-shadow: var(--shadow); overflow-x: auto;
-        }
-
+        .table-card { background: var(--white); padding: 20px; border-radius: 15px; box-shadow: var(--shadow); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1000px; }
         th { text-align: left; padding: 15px 12px; color: var(--text-gray); border-bottom: 1px solid #e0e5f2; }
         td { padding: 15px 12px; border-bottom: 1px solid #f4f7fe; }
@@ -93,53 +70,34 @@
     <div class="filter-card">
         <div class="filter-row">
             <div class="filter-group">
-                <label>Select Year</label>
-                <select id="yearFilter">
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                </select>
+                <label>Year</label>
+                <select id="yearFilter"><option value="2026">2026</option></select>
             </div>
             <div class="filter-group">
-                <label>Select Month</label>
-                <select id="monthFilter">
-                    <option value="1">January</option>
-                    <option value="2">February</option>
-                </select>
+                <label>Month</label>
+                <select id="monthFilter"><option value="1">January</option></select>
             </div>
             <div class="filter-group">
-                <label>Filter Floor</label>
-                <select id="floorFilter">
+                <label>Floor</label>
+                <select id="floorFilter" onchange="processAndRender()">
                     <option value="all">All Floors</option>
                     <option value="1">Floor 1</option>
                     <option value="2">Floor 2</option>
-                    <option value="3">Floor 3</option>
                 </select>
             </div>
             <div class="filter-group">
                 <label>Utility Rate (฿/kWh)</label>
-                <input type="number" value="8" id="rateInput" step="0.5">
+                <input type="number" id="rateInput" value="8" step="0.5">
             </div>
             <button class="btn-apply" onclick="processAndRender()">Apply & Recalculate</button>
         </div>
     </div>
 
     <div class="stats-grid">
-        <div class="stat-card bg-blue">
-            <span class="label">Filtered Rooms</span>
-            <span class="value" id="statRooms">0</span>
-        </div>
-        <div class="stat-card bg-orange">
-            <span class="label">Total Units Used</span>
-            <span class="value" id="statUnits">0 kWh</span>
-        </div>
-        <div class="stat-card bg-green">
-            <span class="label">Total Revenue (Tenants)</span>
-            <span class="value" id="statIncome">0 ฿</span>
-        </div>
-        <div class="stat-card bg-red">
-            <span class="label">Total Profit</span>
-            <span class="value" id="statProfit">0 ฿</span>
-        </div>
+        <div class="stat-card bg-blue"><span class="label">Filtered Rooms</span><span class="value" id="statRooms">0</span></div>
+        <div class="stat-card bg-orange"><span class="label">Total Units Used</span><span class="value" id="statUnits">0 kWh</span></div>
+        <div class="stat-card bg-green"><span class="label">Total Revenue</span><span class="value" id="statIncome">0 ฿</span></div>
+        <div class="stat-card bg-red"><span class="label">Total Profit</span><span class="value" id="statProfit">0 ฿</span></div>
     </div>
 
     <div class="table-card">
@@ -166,6 +124,11 @@
         try {
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             allRoomsData = await resp.json();
+            
+            // ดึงค่า Rate เดิมที่เคยตั้งไว้ (ถ้ามี)
+            const savedRate = localStorage.getItem('utilityRate');
+            if (savedRate) document.getElementById('rateInput').value = savedRate;
+
             processAndRender();
         } catch (err) {
             document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="text-align:center; color:red;">Connection Error</td></tr>';
@@ -177,35 +140,32 @@
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         const floorFilter = document.getElementById('floorFilter').value;
         
+        // บันทึกลง localStorage ทันทีที่กดปุ่มเพื่อให้หน้า Tenant ดึงไปใช้
+        localStorage.setItem('utilityRate', rate);
+
         tbody.innerHTML = '';
+        let totalUnits = 0, totalRevenue = 0, totalProfit = 0, count = 0;
 
-        // กรองข้อมูลตามชั้น
-        const filtered = allRoomsData.filter(room => {
+        allRoomsData.forEach(room => {
             const floor = room.room_number.toString().charAt(0);
-            return floorFilter === 'all' || floor === floorFilter;
-        });
+            if (floorFilter !== 'all' && floor !== floorFilter) return;
 
-        let totalUnits = 0;
-        let totalRevenue = 0;
-        let totalProfit = 0;
-
-        filtered.forEach(room => {
-            const floor = room.room_number.toString().charAt(0);
             const units = Number(room.units_used) || 0;
-            const providerCost = units * 4.5; // ต้นทุนคงที่ 4.5
-            const tenantCost = units * rate;  // คิดตาม Rate ที่ Admin กรอก
+            const providerCost = units * 4.5; 
+            const tenantCost = units * rate; 
             const profit = tenantCost - providerCost;
 
             totalUnits += units;
             totalRevenue += tenantCost;
             totalProfit += profit;
+            count++;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${floor}</td>
                 <td><strong>${room.room_number}</strong></td>
                 <td>${room.room_number}</td>
-                <td>${units.toLocaleString()}</td>
+                <td>${units.toFixed(2)}</td>
                 <td>${tenantCost.toLocaleString()}</td>
                 <td>0</td>
                 <td>${tenantCost.toLocaleString()}</td>
@@ -217,8 +177,7 @@
             tbody.appendChild(tr);
         });
 
-        // อัปเดต Stats ตามข้อมูลที่กรองและ Rate ใหม่
-        document.getElementById('statRooms').innerText = filtered.length;
+        document.getElementById('statRooms').innerText = count;
         document.getElementById('statUnits').innerText = totalUnits.toLocaleString() + ' kWh';
         document.getElementById('statIncome').innerText = totalRevenue.toLocaleString() + ' ฿';
         document.getElementById('statProfit').innerText = totalProfit.toLocaleString() + ' ฿';
