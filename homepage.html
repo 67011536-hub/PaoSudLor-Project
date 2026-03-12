@@ -20,7 +20,6 @@
             background-color: var(--bg); color: var(--text-main);
         }
 
-        /* Header Area */
         header {
             background: #345da7; padding: 12px 30px;
             display: flex; justify-content: space-between; align-items: center; color: white;
@@ -49,7 +48,7 @@
 
         /* Dashboard Layout */
         .dashboard-grid {
-            display: grid; grid-template-columns: 300px 1fr; gap: 25px; margin-bottom: 25px;
+            display: grid; grid-template-columns: 320px 1fr; gap: 25px; margin-bottom: 25px;
         }
 
         /* Left Column */
@@ -58,14 +57,21 @@
             margin-bottom: 20px;
         }
         .side-card h4 { margin: 0 0 15px 0; font-size: 14px; color: var(--text-gray); }
+        
         .info-box {
             background: #f8faff; border: 1px solid #e0e5f2; border-radius: 10px;
-            padding: 12px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;
+            padding: 15px; margin-bottom: 15px;
         }
+        
+        .meter-detail {
+            display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px;
+        }
+
         .btn-pay {
             width: 100%; background: #4361ee; color: white; border: none;
-            padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;
+            padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
         }
+        .btn-pay:hover { background: #3450d1; }
 
         /* Main Content (Chart) */
         .main-card {
@@ -88,9 +94,9 @@
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
         }
-        .modal-content { background: white; padding: 20px; border-radius: 15px; text-align: center; max-width: 300px; }
-        .modal-content img { width: 100%; border-radius: 10px; }
-        .btn-close { margin-top: 15px; padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; text-align: center; max-width: 320px; }
+        .modal-content img { width: 100%; border-radius: 10px; margin: 15px 0; }
+        .btn-close { padding: 8px 25px; background: #eee; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -98,8 +104,8 @@
 <header>
     <div style="font-weight: 700; font-size: 20px;">Com Info</div>
     <div class="user-info">
-        <span id="tenantName">somchai01</span>
-        <a href="sign in.html" style="color: white; text-decoration: none; font-weight: 600;">Logout</a>
+        <span id="tenantHeaderName">Loading...</span>
+        <a href="sign in.html" style="color: white; text-decoration: none; font-weight: 600; margin-left: 15px;">Logout</a>
     </div>
 </header>
 
@@ -111,7 +117,7 @@
         </div>
         <div class="card bg-red">
             <span class="label">📅 Due Date</span>
-            <span class="value">10 Feb 2026</span>
+            <span class="value">10 Mar 2026</span>
         </div>
         <div class="card bg-green">
             <span class="label">⚡ Units Used</span>
@@ -127,15 +133,32 @@
         <div class="sidebar">
             <div class="side-card">
                 <h4>Tenant Information</h4>
-                <div class="info-box">👤 <span id="sideName">somchai01</span></div>
-                <div class="info-box">⚡ Current Meter: <strong id="sideMeter">0 kWh</strong></div>
+                <div class="info-box" style="display: flex; align-items: center; gap: 10px;">
+                    👤 <strong id="sideName">Loading...</strong>
+                </div>
+                
+                <div class="info-box">
+                    <div class="meter-detail">
+                        <span>Previous Meter:</span>
+                        <strong id="prevMeter">0.00</strong>
+                    </div>
+                    <div class="meter-detail">
+                        <span>Current Meter:</span>
+                        <strong id="currMeter">0.00</strong>
+                    </div>
+                    <div style="border-top: 1px solid #e0e5f2; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between;">
+                        <span>Units Used:</span>
+                        <strong style="color: #4ecb71;" id="sideUnits">0.00 kWh</strong>
+                    </div>
+                </div>
+                
                 <button class="btn-pay" onclick="showQR()">Pay Now</button>
             </div>
+
             <div class="side-card">
-                <h4>Monthly Electricity Usage</h4>
+                <h4>Usage Summary</h4>
                 <div style="font-size: 14px;">
-                    <p>Selected Year: <strong>2026</strong></p>
-                    <p>Months With Data: <strong>1</strong></p>
+                    <p>Year: <strong>2026</strong></p>
                     <p>Average / Month: <strong id="sideAvg">0 kWh</strong></p>
                 </div>
             </div>
@@ -148,8 +171,9 @@
                     <option>2026</option>
                 </select>
             </div>
-            <canvas id="usageChart" style="max-height: 300px;"></canvas>
-            <p id="trendText" style="color: var(--text-gray); font-size: 12px; margin-top: 15px;">No trend data</p>
+            <div style="height: 300px; position: relative;">
+                <canvas id="usageChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -157,7 +181,11 @@
         <table>
             <thead>
                 <tr>
-                    <th>MONTH</th><th>START METER</th><th>END METER</th><th>UNITS (KWH)</th><th>COST (฿)</th>
+                    <th>MONTH</th>
+                    <th>PREVIOUS METER (START)</th>
+                    <th>CURRENT METER (END)</th>
+                    <th>UNITS (KWH)</th>
+                    <th>COST (฿)</th>
                 </tr>
             </thead>
             <tbody id="usageTable">
@@ -168,9 +196,9 @@
 
 <div id="qrModal">
     <div class="modal-content">
-        <h3>PromptPay Payment</h3>
-        <img src="qr.png" alt="QR Code Payment">
-        <p style="font-size: 12px; color: #666; margin-top: 10px;">Please scan to pay within the due date.</p>
+        <h3 style="margin:0;">PromptPay Payment</h3>
+        <p style="font-size: 13px; color: #666;">Scan QR Code to pay</p>
+        <img src="qr.png" alt="QR Code Payment" onerror="this.src='https://via.placeholder.com/200?text=QR+Code'">
         <button class="btn-close" onclick="closeQR()">Close</button>
     </div>
 </div>
@@ -178,54 +206,57 @@
 <script>
     const API_BASE = 'https://paosudlor-project.onrender.com';
     const params = new URLSearchParams(window.location.search);
-    const username = params.get('user') || 'somchai01';
-
-    // Mock data based on your screenshots
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // กรณีไม่มี User ใน URL จะใช้ 101 เป็นตัวอย่าง
+    const username = params.get('user') || '101'; 
 
     async function loadTenantData() {
         try {
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             const allData = await resp.json();
             
-            // ค้นหาข้อมูลห้องที่ตรงกับ USER
-            // หมายเหตุ: ใน API ตัวอย่างใช้ room_number แทน username ชั่วคราว
-            const myRoom = allData.find(r => r.room_number.toString() === "101") || allData[0];
+            // ค้นหาห้องที่ตรงกับเลขห้อง หรือ Username
+            const myRoom = allData.find(r => r.room_number.toString() === username) || allData[0];
 
             if (myRoom) {
-                const units = parseFloat(myRoom.units_used);
-                const cost = units * 8;
-                const currentMeter = 178; // ตัวอย่างจากภาพ
-                const startMeter = currentMeter - units;
+                const units = Number(myRoom.units_used) || 0;
+                const cost = units * 8; // เรท 8 บาท
+                const endMeter = 178.00; // ตัวอย่างเลขอ่านปัจจุบัน
+                const startMeter = endMeter - units;
 
-                // Update UI
-                document.getElementById('tenantName').innerText = username;
-                document.getElementById('sideName').innerText = username;
+                // อัปเดตข้อมูลบนหน้าจอ
+                document.getElementById('tenantHeaderName').innerText = "Room " + myRoom.room_number;
+                document.getElementById('sideName').innerText = "Room " + myRoom.room_number;
+                
                 document.getElementById('cardCost').innerText = cost.toLocaleString() + ' ฿';
                 document.getElementById('cardUnits').innerText = units.toLocaleString() + ' kWh';
-                document.getElementById('sideMeter').innerText = currentMeter + ' kWh';
-                document.getElementById('sideAvg').innerText = units.toLocaleString() + ' kWh';
+                
+                document.getElementById('prevMeter').innerText = startMeter.toFixed(2);
+                document.getElementById('currMeter').innerText = endMeter.toFixed(2);
+                document.getElementById('sideUnits').innerText = units.toFixed(2) + ' kWh';
+                document.getElementById('sideAvg').innerText = units.toFixed(2) + ' kWh';
 
-                // Render Table
+                // อัปเดตตาราง
                 const tbody = document.getElementById('usageTable');
                 tbody.innerHTML = `
                     <tr>
-                        <td>Jan 2026</td>
+                        <td><strong>January 2026</strong></td>
                         <td>${startMeter.toFixed(2)}</td>
-                        <td>${currentMeter.toFixed(2)}</td>
-                        <td>${units.toFixed(2)}</td>
-                        <td>${cost.toLocaleString()} ฿</td>
+                        <td>${endMeter.toFixed(2)}</td>
+                        <td><strong style="color:#4361ee">${units.toFixed(2)}</strong></td>
+                        <td><strong>${cost.toLocaleString()} ฿</strong></td>
                     </tr>
                 `;
-                // เติมแถวว่าง 11 เดือน
-                for(let i=1; i<12; i++) {
-                    tbody.innerHTML += `<tr><td>${monthNames[i]} 2026</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>`;
-                }
+                
+                // เติมเดือนอื่นๆ ให้ครบตาราง
+                const months = ["February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                months.forEach(m => {
+                    tbody.innerHTML += `<tr><td>${m} 2026</td><td>-</td><td>-</td><td>0</td><td>0 ฿</td></tr>`;
+                });
 
                 initChart(units);
             }
         } catch (err) {
-            console.error("Error loading data:", err);
+            console.error("Load Error:", err);
         }
     }
 
@@ -234,23 +265,23 @@
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: monthNames,
+                labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
                 datasets: [{
-                    label: 'Units Used (kWh)',
+                    label: 'Electricity Usage (kWh)',
                     data: [janUnits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     backgroundColor: '#dce4ff',
                     hoverBackgroundColor: '#4361ee',
-                    borderRadius: 5,
+                    borderRadius: 8,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
                 scales: {
                     y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
                     x: { grid: { display: false } }
-                },
-                plugins: { legend: { display: false } }
+                }
             }
         });
     }
