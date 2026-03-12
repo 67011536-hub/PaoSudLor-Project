@@ -33,6 +33,7 @@
 
         main { padding: 30px; max-width: 1400px; margin: 0 auto; }
 
+        /* Filter Section */
         .filter-card {
             background: var(--white);
             padding: 20px;
@@ -67,10 +68,9 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: 600;
-            transition: 0.3s;
         }
-        .btn-apply:hover { opacity: 0.9; transform: translateY(-1px); }
 
+        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -95,6 +95,7 @@
         .bg-green { background: #4ecb71; }
         .bg-red { background: #f26464; }
 
+        /* Table Section */
         .table-card {
             background: var(--white);
             padding: 20px;
@@ -109,8 +110,6 @@
 
         .badge-unpaid { background: #ffebeb; color: #ff5b5b; padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 11px; }
         .btn-paid { background: #2b3674; color: white; border: none; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; }
-
-        .add-reading-section { margin-top: 25px; }
     </style>
 </head>
 <body>
@@ -151,7 +150,7 @@
             </div>
             <button class="btn-apply" onclick="applyFilters()">Apply Filter</button>
         </div>
-        <div class="filter-row" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f4f7fe;">
+        <div class="filter-row" style="margin-top: 15px; border-top: 1px solid #f4f7fe; padding-top: 15px;">
             <div class="filter-group">
                 <label>Utility Rate (฿/kWh)</label>
                 <input type="number" value="8" id="rateInput" step="0.1">
@@ -193,37 +192,24 @@
             </tbody>
         </table>
     </div>
-
-    <div class="filter-card add-reading-section">
-        <h3 style="margin-top:0;">Add Monthly Reading</h3>
-        <div class="filter-row">
-            <div class="filter-group">
-                <label>Meter ID (Room)</label>
-                <input type="number" id="meterIdInput" placeholder="e.g. 101">
-            </div>
-            <div class="filter-group">
-                <label>Current Reading (kWh)</label>
-                <input type="number" id="meterValInput" placeholder="e.g. 1250">
-            </div>
-            <button class="btn-apply" onclick="saveReading()">Save Reading</button>
-        </div>
-    </div>
 </main>
 
 <script>
     const API_BASE = 'https://paosudlor-project.onrender.com';
     let allRoomsData = [];
 
-    // สร้างตัวเลือกปี 2020 - 2026
+    // ฟังก์ชันสร้างปี 2020-2026
     function setupYearFilter() {
         const yearSelect = document.getElementById('yearFilter');
         for (let y = 2026; y >= 2020; y--) {
             let opt = document.createElement('option');
-            opt.value = y; opt.innerHTML = y;
+            opt.value = y;
+            opt.innerHTML = y;
             yearSelect.appendChild(opt);
         }
     }
 
+    // ดึงข้อมูล
     async function loadData() {
         try {
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
@@ -231,22 +217,23 @@
             renderTable();
             updateSummary();
         } catch (err) {
-            document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="11" style="color:red; text-align:center;">Error connecting to server</td></tr>';
+            console.error(err);
         }
     }
 
+    // แสดงผลตาราง (รองรับ Filter ชั้น และการคำนวณ Rate)
     function renderTable() {
         const tbody = document.getElementById('allRoomsBody');
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         const floorFilter = document.getElementById('floorFilter').value;
         tbody.innerHTML = '';
 
-        const filtered = allRoomsData.filter(room => {
+        const filteredData = allRoomsData.filter(room => {
             const floor = room.room_number.toString().charAt(0);
             return floorFilter === 'all' || floor === floorFilter;
         });
 
-        filtered.forEach(room => {
+        filteredData.forEach(room => {
             const floor = room.room_number.toString().charAt(0);
             const providerCost = room.units_used * 4.5;
             const tenantCost = room.units_used * rate;
@@ -268,9 +255,10 @@
             `;
             tbody.appendChild(tr);
         });
-        document.getElementById('statRooms').innerText = filtered.length;
+        document.getElementById('statRooms').innerText = filteredData.length;
     }
 
+    // อัปเดตกล่องตัวเลขด้านบน
     function updateSummary() {
         const rate = parseFloat(document.getElementById('rateInput').value) || 8;
         let totalUnits = 0, totalIncome = 0, totalCost = 0;
@@ -289,26 +277,10 @@
     function recalculateAll() { renderTable(); updateSummary(); }
     function applyFilters() { renderTable(); }
 
-    async function saveReading() {
-        const meterId = document.getElementById('meterIdInput').value;
-        const kwhValue = document.getElementById('meterValInput').value;
-        if(!meterId || !kwhValue) return alert("Please fill all fields");
-
-        try {
-            const response = await fetch(`${API_BASE}/api/add-meter`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ meterId, kwhValue })
-            });
-            const result = await response.json();
-            if(result.success) {
-                alert("Saved!");
-                loadData();
-            } else alert("Error: " + result.error);
-        } catch(err) { alert("Server Error"); }
-    }
-
-    window.onload = () => { setupYearFilter(); loadData(); };
+    window.onload = () => {
+        setupYearFilter();
+        loadData();
+    };
 </script>
 </body>
 </html>
