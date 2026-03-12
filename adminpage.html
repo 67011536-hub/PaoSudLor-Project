@@ -6,60 +6,109 @@
     <title>Admin Dashboard – Com Info</title>
     <style>
         :root {
-            --bg: #f7f8fa;
-            --card: #ffffff;
-            --primary: #3466af;
-            --radius: 8px;
-            --shadow: 0 2px 8px rgba(0,0,0,.1);
-            --text: #343a40;
-            font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --bg-color: #f0f2f5;
+            --primary-color: #3466af;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
-        * { box-sizing: border-box; }
-        body { margin: 0; background: var(--bg); color: var(--text); }
-        header {
-            background: var(--primary); color: #fff;
-            padding: 1rem 2rem; display: flex;
-            justify-content: space-between; align-items: center;
-        }
-        header h1 { margin: 0; font-size: 1.25rem; font-weight: 400; }
-        main { padding: 2rem; }
-        .card {
-            background: var(--card); padding: 1.5rem;
-            border-radius: var(--radius); box-shadow: var(--shadow);
-            max-width: 900px; margin: 0 auto 1.5rem auto;
-        }
-        .filter-section {
-            margin-bottom: 1.5rem; display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem; align-items: end;
-        }
-        .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-weight: 500; margin-bottom: .25rem; font-size: .9rem; }
-        .filter-group input {
-            padding: .5rem; border: 1px solid #ccc;
-            border-radius: var(--radius); font-size: 1rem;
-        }
-        button.filter-btn {
-            padding: .5rem 1rem; background: var(--primary);
-            color: #fff; border: none; border-radius: var(--radius);
-            cursor: pointer; font-size: 1rem;
-        }
-        button.filter-btn:hover { background: #234a86; }
-        
-        table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: .9rem; }
-        th, td { border: 1px solid #dee2e6; padding: .5rem .75rem; text-align: center; }
-        th { background: var(--bg); font-weight: 500; position: sticky; top: 0; }
-        
-        .logout { color: #fff; text-decoration: none; font-size: .9rem; }
-        .logout:hover { text-decoration: underline; }
-        .profit-pos { color: green; font-weight: bold; }
-        .profit-neg { color: red; font-weight: bold; }
-        
-        .table-responsive { max-height: 400px; overflow-y: auto; overflow-x: auto; margin-top: 1rem; }
 
-        /* ป้ายสถานะจ่ายเงิน */
-        .badge-paid { background: #26de81; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-        .badge-unpaid { background: #fc5c65; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 { margin: 0; font-size: 1.25rem; }
+        .logout { color: #fff; text-decoration: none; font-size: .9rem; opacity: 0.8; }
+        .logout:hover { opacity: 1; text-decoration: underline; }
+
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+        /* Dashboard Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            border-left: 6px solid #ccc;
+        }
+
+        .stat-card.blue { border-left-color: #5d78ff; }
+        .stat-card.orange { border-left-color: #ff9f43; }
+        .stat-card.green { border-left-color: #28c76f; }
+        .stat-card.red { border-left-color: #ea5455; }
+
+        .stat-card .label { font-size: 0.9rem; color: #636e72; font-weight: 500; }
+        .stat-card .value { font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0; }
+
+        /* Content Card */
+        .content-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .content-card h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary-color); }
+
+        /* Form Styling */
+        .filter-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-weight: 500; margin-bottom: .4rem; font-size: .85rem; color: #636e72; }
+        .filter-group input {
+            padding: .6rem; border: 1px solid #ddd;
+            border-radius: 8px; font-size: 1rem; outline: none;
+        }
+
+        .btn-primary {
+            padding: .6rem 1.2rem; background: var(--primary-color);
+            color: #fff; border: none; border-radius: 8px;
+            cursor: pointer; font-size: 1rem; transition: 0.3s;
+        }
+        .btn-primary:hover { background: #234a86; transform: translateY(-1px); }
+
+        /* Table Styling */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th { text-align: left; padding: 12px; color: #636e72; font-weight: 600; border-bottom: 2px solid #f0f2f5; }
+        td { padding: 15px 12px; border-bottom: 1px solid #f8f9fa; }
+        tr:hover td { background-color: #fcfcfc; }
+
+        /* Badges */
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
+        .badge-paid { background: #d2f9e4; color: #18af61; }
+        .badge-unpaid { background: #ffe2e2; color: #ea5455; }
+        .status-empty { color: #aaa; font-style: italic; }
+
+        .profit-pos { color: #28c76f; }
+        .profit-neg { color: #ea5455; }
     </style>
 </head>
 <body>
@@ -67,37 +116,43 @@
         <h1>Com Info – Admin Control</h1>
         <a href="sign in.html" class="logout">Logout</a>
     </header>
+
     <main>
-        <div class="card">
-            <h2>Building Usage Summary</h2>
-            <table id="usageTable">
-                <thead>
-                    <tr>
-                        <th>Total Units (kWh)</th>
-                        <th>Income (Tenants)</th>
-                        <th>Cost (PEA)</th>
-                        <th>Net Profit</th>
-                    </tr>
-                </thead>
-                <tbody id="summaryBody">
-                    <tr><td colspan="4">Loading data...</td></tr>
-                </tbody>
-            </table>
-            <button class="filter-btn" style="margin-top: 1rem;" onclick="loadAllData()">Refresh Report</button>
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <span class="label">Total Units</span>
+                <span class="value" id="statUnits">0 kWh</span>
+            </div>
+            <div class="stat-card orange">
+                <span class="label">Total Income</span>
+                <span class="value" id="statIncome">0 ฿</span>
+            </div>
+            <div class="stat-card green">
+                <span class="label">PEA Cost</span>
+                <span class="value" id="statCost">0 ฿</span>
+            </div>
+            <div class="stat-card red">
+                <span class="label">Net Profit</span>
+                <span class="value" id="statProfit">0 ฿</span>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>All Rooms Status (สถานะทุกห้อง)</h2>
-            <div class="table-responsive">
-                <table id="allRoomsTable">
+        <div class="content-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>All Rooms Status (สถานะทุกห้อง)</h2>
+                <button class="btn-primary" style="font-size: 0.8rem;" onclick="loadAllData()">Refresh Data</button>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
                     <thead>
                         <tr>
-                            <th>Room</th>
-                            <th>Tenant Name</th>
-                            <th>Current (kWh)</th>
-                            <th>Units Used</th>
-                            <th>Total (฿)</th>
-                            <th>Status</th> </tr>
+                            <th>ROOM</th>
+                            <th>TENANT NAME</th>
+                            <th>CURRENT (kWh)</th>
+                            <th>UNITS USED</th>
+                            <th>TOTAL (฿)</th>
+                            <th>STATUS</th>
+                        </tr>
                     </thead>
                     <tbody id="allRoomsBody">
                         <tr><td colspan="6">Loading data...</td></tr>
@@ -106,8 +161,8 @@
             </div>
         </div>
 
-        <div class="card">
-            <h3>Add Monthly Reading</h3>
+        <div class="content-card">
+            <h2>Add Monthly Reading</h2>
             <div class="filter-section">
                 <div class="filter-group">
                     <label>Meter ID (Room)</label>
@@ -117,7 +172,7 @@
                     <label>Current Reading (kWh)</label>
                     <input type="number" id="meterValInput" placeholder="e.g. 1250">
                 </div>
-                <button class="filter-btn" onclick="saveReading()">Save Reading</button>
+                <button class="btn-primary" onclick="saveReading()">Save Reading</button>
             </div>
         </div>
     </main>
@@ -129,19 +184,18 @@
             try {
                 const resp = await fetch(`${API_BASE}/api/admin-report`);
                 const data = await resp.json();
-                const tbody = document.getElementById('summaryBody');
-                const profitClass = data.profit >= 0 ? 'profit-pos' : 'profit-neg';
                 
-                tbody.innerHTML = `
-                    <tr>
-                        <td>${data.total_units || 0}</td>
-                        <td>${(data.income_from_tenants || 0).toLocaleString()} ฿</td>
-                        <td>${(data.cost_to_pea || 0).toLocaleString()} ฿</td>
-                        <td class="${profitClass}">${(data.profit || 0).toLocaleString()} ฿</td>
-                    </tr>
-                `;
+                // อัปเดตตัวเลขในกล่อง Stats
+                document.getElementById('statUnits').innerText = `${(data.total_units || 0).toLocaleString()} kWh`;
+                document.getElementById('statIncome').innerText = `${(data.income_from_tenants || 0).toLocaleString()} ฿`;
+                document.getElementById('statCost').innerText = `${(data.cost_to_pea || 0).toLocaleString()} ฿`;
+                
+                const profitEl = document.getElementById('statProfit');
+                profitEl.innerText = `${(data.profit || 0).toLocaleString()} ฿`;
+                profitEl.className = 'value ' + (data.profit >= 0 ? 'profit-pos' : 'profit-neg');
+
             } catch (err) {
-                document.getElementById('summaryBody').innerHTML = '<tr><td colspan="4" style="color:red;">Error loading API</td></tr>';
+                console.error("Summary error:", err);
             }
         }
 
@@ -152,29 +206,19 @@
                 const tbody = document.getElementById('allRoomsBody');
                 tbody.innerHTML = '';
 
-                if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6">ไม่มีข้อมูลห้องในระบบ</td></tr>';
-                    return;
-                }
-
-                // 🌟 รายชื่อห้องที่เราจะ "เมค" ว่ายังไม่จ่ายเงิน
+                // รายชื่อห้อง UNPAID (จำลองตามโค้ดเดิม)
                 const unpaidRooms = ['102', '105', '110', '203'];
 
                 data.forEach(room => {
                     const tr = document.createElement('tr');
-                    
-                    // 🌟 เช็คเงื่อนไขการแสดงป้ายสถานะ
                     let statusHtml = '';
                     
                     if (room.tenant_name === 'ว่าง' || !room.tenant_name) {
-                        // 1. ถ้าเป็นห้องว่าง ให้แสดงแค่ขีด (-) สีเทา
-                        statusHtml = '<span style="color: #aaa; font-style: italic;">-</span>';
+                        statusHtml = '<span class="status-empty">-</span>';
                     } else if (unpaidRooms.includes(room.room_number)) {
-                        // 2. ถ้าตรงกับเลขห้องที่เซ็ตไว้ ให้ขึ้น UNPAID
-                        statusHtml = '<span class="badge-unpaid">UNPAID</span>';
+                        statusHtml = '<span class="badge badge-unpaid">UNPAID</span>';
                     } else {
-                        // 3. ห้องอื่นๆ ที่มีคนอยู่ ให้ขึ้น PAID
-                        statusHtml = '<span class="badge-paid">PAID</span>';
+                        statusHtml = '<span class="badge badge-paid">PAID</span>';
                     }
 
                     tr.innerHTML = `
@@ -183,12 +227,12 @@
                         <td>${room.current_reading}</td>
                         <td>${room.units_used}</td>
                         <td>${(room.units_used * 8).toLocaleString()} ฿</td>
-                        <td>${statusHtml}</td> 
+                        <td>${statusHtml}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (err) {
-                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="6" style="color:red;">ไม่สามารถโหลดข้อมูลห้องได้</td></tr>';
+                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="6" style="color:red;">Error loading data</td></tr>';
             }
         }
 
@@ -206,21 +250,18 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ meterId, kwhValue })
                 });
-                
                 const result = await response.json();
                 if(result.success) {
-                    alert("✅ บันทึกข้อมูลสำเร็จ!");
+                    alert("✅ บันทึกสำเร็จ!");
                     document.getElementById('meterIdInput').value = '';
                     document.getElementById('meterValInput').value = '';
                     loadAllData();
                 } else {
                     alert("❌ Error: " + result.error);
                 }
-            } catch(err) {
-                alert("ไม่สามารถเชื่อมต่อ Server ได้");
-            }
+            } catch(err) { alert("เชื่อมต่อ Server ไม่ได้"); }
         }
-        
+
         function loadAllData() {
             fetchAdminSummary();
             fetchAllRooms();
@@ -230,4 +271,3 @@
     </script>
 </body>
 </html>
-
