@@ -31,15 +31,22 @@
         .bg-green { background: #4ecb71; }
         .bg-orange { background: #ffb84d; }
 
-        /* Layout Grid */
+        /* Dashboard Grid */
         .dashboard-grid { display: grid; grid-template-columns: 320px 1fr; gap: 25px; margin-bottom: 25px; }
         .side-card { background: var(--white); border-radius: 15px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 20px; }
         .side-card h4 { margin: 0 0 15px 0; font-size: 14px; color: var(--text-gray); }
         .info-box { background: #f8faff; border: 1px solid #e0e5f2; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
         .meter-detail { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
 
-        .btn-pay { width: 100%; background: #4361ee; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        .btn-pay { width: 100%; background: #4361ee; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s; margin-bottom: 10px; }
         .btn-pay:hover { background: #3450d1; }
+        .btn-confirm { width: 100%; background: #219653; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+        .btn-confirm:hover { background: #1a7a43; }
+
+        .status-badge { text-align: center; padding: 8px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-top: 10px; }
+        .unpaid { background: #ffebeb; color: #ff5b5b; }
+        .paid { background: #e6fff1; color: #219653; }
+        .pending { background: #fff4e6; color: #f2994a; }
 
         .main-card { background: var(--white); border-radius: 15px; padding: 25px; box-shadow: var(--shadow); }
         .table-card { background: var(--white); border-radius: 15px; padding: 20px; box-shadow: var(--shadow); overflow-x: auto; }
@@ -49,7 +56,6 @@
 
         #qrModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: white; padding: 25px; border-radius: 15px; text-align: center; max-width: 320px; }
-        .btn-close { padding: 8px 25px; background: #eee; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -78,11 +84,18 @@
                 <div class="info-box">
                     <div class="meter-detail"><span>Previous Meter:</span><strong id="prevMeter">0.00</strong></div>
                     <div class="meter-detail"><span>Current Meter:</span><strong id="currMeter">0.00</strong></div>
-                    <div style="border-top: 1px solid #e0e5f2; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between;">
-                        <span>Units Used:</span><strong style="color: #4ecb71;" id="sideUnits">0.00 kWh</strong>
-                    </div>
                 </div>
-                <button class="btn-pay" onclick="showQR()">Pay Now</button>
+                <button class="btn-pay" onclick="showQR()">Pay Now (Show QR)</button>
+                
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+                
+                <h4>Confirm Payment</h4>
+                <div class="info-box" id="uploadArea">
+                    <label style="font-size: 11px; color: var(--text-gray); display: block; margin-bottom: 5px;">ATTACH SLIP</label>
+                    <input type="file" id="slipInput" accept="image/*" style="font-size: 12px; width: 100%; margin-bottom: 10px;">
+                    <button class="btn-confirm" onclick="submitSlip()">Submit Evidence</button>
+                </div>
+                <div id="statusDisplay" class="status-badge unpaid">Status: Unpaid</div>
             </div>
 
             <div class="side-card">
@@ -90,7 +103,6 @@
                 <div style="font-size: 14px;">
                     <p>Year: <strong>2026</strong></p>
                     <p>Electricity Rate: <strong id="displayRate" style="color: #4361ee;">8.00 ฿/kWh</strong></p>
-                    <p>Average / Month: <strong id="sideAvg">0 kWh</strong></p>
                 </div>
             </div>
         </div>
@@ -105,7 +117,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>MONTH</th><th>PREVIOUS METER (START)</th><th>CURRENT METER (END)</th><th>UNITS (KWH)</th><th>COST (฿)</th>
+                    <th>MONTH</th><th>PREVIOUS</th><th>CURRENT</th><th>UNITS (KWH)</th><th>COST (฿)</th>
                 </tr>
             </thead>
             <tbody id="usageTable"></tbody>
@@ -115,9 +127,9 @@
 
 <div id="qrModal">
     <div class="modal-content">
-        <h3>PromptPay Payment</h3>
+        <h3>PromptPay QR</h3>
         <img src="qr.png" alt="QR" style="width:100%; border-radius:10px; margin:15px 0;" onerror="this.src='https://via.placeholder.com/200?text=QR+Code'">
-        <button class="btn-close" onclick="closeQR()">Close</button>
+        <button style="padding: 8px 20px; border: none; border-radius: 5px; cursor: pointer;" onclick="closeQR()">Close</button>
     </div>
 </div>
 
@@ -131,16 +143,28 @@
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             const allData = await resp.json();
             
-            // ดึงค่า Rate จากที่ Admin บันทึกไว้ในเครื่อง (localStorage)
             const savedRate = localStorage.getItem('utilityRate') || 8;
             const rate = parseFloat(savedRate);
             document.getElementById('displayRate').innerText = rate.toFixed(2) + ' ฿/kWh';
+
+            // ตรวจสอบสถานะการจ่ายเงิน
+            const paymentStatus = localStorage.getItem(`paymentStatus_${username}`) || 'Unpaid';
+            const statusDisplay = document.getElementById('statusDisplay');
+            
+            if (paymentStatus === 'Paid') {
+                statusDisplay.innerText = "Status: Paid ✅";
+                statusDisplay.className = "status-badge paid";
+                document.getElementById('uploadArea').style.display = 'none';
+            } else if (localStorage.getItem(`slipSent_${username}`)) {
+                statusDisplay.innerText = "Status: Pending Review ⏳";
+                statusDisplay.className = "status-badge pending";
+            }
 
             const myRoom = allData.find(r => r.room_number.toString() === username) || allData[0];
 
             if (myRoom) {
                 const units = Number(myRoom.units_used) || 0;
-                const cost = units * rate; // คำนวณยอดเงินตาม Rate จริงที่ดึงมา
+                const cost = units * rate;
                 const endMeter = 178.00; 
                 const startMeter = endMeter - units;
 
@@ -150,11 +174,8 @@
                 document.getElementById('cardUnits').innerText = units.toLocaleString() + ' kWh';
                 document.getElementById('prevMeter').innerText = startMeter.toFixed(2);
                 document.getElementById('currMeter').innerText = endMeter.toFixed(2);
-                document.getElementById('sideUnits').innerText = units.toFixed(2) + ' kWh';
-                document.getElementById('sideAvg').innerText = units.toFixed(2) + ' kWh';
 
-                const tbody = document.getElementById('usageTable');
-                tbody.innerHTML = `
+                document.getElementById('usageTable').innerHTML = `
                     <tr>
                         <td><strong>January 2026</strong></td>
                         <td>${startMeter.toFixed(2)}</td>
@@ -165,21 +186,26 @@
                 `;
                 initChart(units);
             }
-        } catch (err) { console.error("Load Error:", err); }
+        } catch (err) { console.error(err); }
     }
 
-    function initChart(janUnits) {
+    function submitSlip() {
+        const file = document.getElementById('slipInput').files[0];
+        if (!file) { alert("Please select a slip image first!"); return; }
+        
+        // จำลองการส่ง
+        localStorage.setItem(`slipSent_${username}`, 'true');
+        alert("Slip submitted! Please wait for Admin to verify.");
+        location.reload();
+    }
+
+    function initChart(val) {
         const ctx = document.getElementById('usageChart').getContext('2d');
         new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-                datasets: [{
-                    label: 'Usage (kWh)',
-                    data: [janUnits, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    backgroundColor: '#dce4ff',
-                    borderRadius: 8,
-                }]
+                datasets: [{ label: 'kWh', data: [val, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], backgroundColor: '#4361ee', borderRadius: 8 }]
             },
             options: { responsive: true, maintainAspectRatio: false }
         });
