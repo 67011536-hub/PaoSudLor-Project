@@ -3,271 +3,248 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Admin Dashboard – Com Info</title>
+    <title>Com Info - Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --primary-color: #3466af;
-            --card-bg: #ffffff;
-            --text-main: #2d3436;
-            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --bg-body: #f4f7fe;
+            --primary: #4361ee;
+            --white: #ffffff;
+            --text-dark: #2b3674;
+            --text-gray: #a3aed0;
+            --shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
         }
 
         body {
             margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
         }
 
         header {
-            background: var(--primary-color);
+            background: #345da7;
             color: white;
-            padding: 1rem 2rem;
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        header h1 { margin: 0; font-size: 1.25rem; }
-        .logout { color: #fff; text-decoration: none; font-size: .9rem; opacity: 0.8; }
-        .logout:hover { opacity: 1; text-decoration: underline; }
+        main { padding: 30px; max-width: 1400px; margin: 0 auto; }
 
-        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        /* Filter Section */
+        .filter-card {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+        }
 
-        /* Dashboard Stats Grid */
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 11px; font-weight: 600; color: var(--text-gray); text-transform: uppercase; }
+        .filter-group select, .filter-group input {
+            padding: 8px 12px;
+            border: 1px solid #e0e5f2;
+            border-radius: 10px;
+            outline: none;
+            color: var(--text-dark);
+        }
+
+        .btn-apply {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
         }
 
         .stat-card {
-            background: var(--card-bg);
-            padding: 1.5rem;
+            background: var(--white);
+            padding: 20px;
             border-radius: 15px;
             box-shadow: var(--shadow);
             display: flex;
             flex-direction: column;
-            border-left: 6px solid #ccc;
+            color: white;
         }
 
-        .stat-card.blue { border-left-color: #5d78ff; }
-        .stat-card.orange { border-left-color: #ff9f43; }
-        .stat-card.green { border-left-color: #28c76f; }
-        .stat-card.red { border-left-color: #ea5455; }
+        .stat-card .label { font-size: 13px; opacity: 0.9; }
+        .stat-card .value { font-size: 24px; font-weight: 700; margin-top: 5px; }
 
-        .stat-card .label { font-size: 0.9rem; color: #636e72; font-weight: 500; }
-        .stat-card .value { font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0; }
+        .bg-blue { background: #5677db; }
+        .bg-orange { background: #ffb84d; }
+        .bg-green { background: #4ecb71; }
+        .bg-red { background: #f26464; }
 
-        /* Content Card */
-        .content-card {
-            background: var(--card-bg);
-            padding: 1.5rem;
+        /* Table Section */
+        .table-card {
+            background: var(--white);
+            padding: 20px;
             border-radius: 15px;
             box-shadow: var(--shadow);
-            margin-bottom: 2rem;
+            overflow: hidden;
         }
 
-        .content-card h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary-color); }
-
-        /* Form Styling */
-        .filter-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            align-items: end;
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { 
+            text-align: left; 
+            padding: 12px; 
+            color: var(--text-gray); 
+            border-bottom: 1px solid #e0e5f2;
+            font-weight: 600;
         }
+        td { padding: 15px 12px; border-bottom: 1px solid #f4f7fe; }
 
-        .filter-group { display: flex; flex-direction: column; }
-        .filter-group label { font-weight: 500; margin-bottom: .4rem; font-size: .85rem; color: #636e72; }
-        .filter-group input {
-            padding: .6rem; border: 1px solid #ddd;
-            border-radius: 8px; font-size: 1rem; outline: none;
-        }
-
-        .btn-primary {
-            padding: .6rem 1.2rem; background: var(--primary-color);
-            color: #fff; border: none; border-radius: 8px;
-            cursor: pointer; font-size: 1rem; transition: 0.3s;
-        }
-        .btn-primary:hover { background: #234a86; transform: translateY(-1px); }
-
-        /* Table Styling */
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th { text-align: left; padding: 12px; color: #636e72; font-weight: 600; border-bottom: 2px solid #f0f2f5; }
-        td { padding: 15px 12px; border-bottom: 1px solid #f8f9fa; }
-        tr:hover td { background-color: #fcfcfc; }
-
-        /* Badges */
-        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; }
-        .badge-paid { background: #d2f9e4; color: #18af61; }
-        .badge-unpaid { background: #ffe2e2; color: #ea5455; }
-        .status-empty { color: #aaa; font-style: italic; }
-
-        .profit-pos { color: #28c76f; }
-        .profit-neg { color: #ea5455; }
+        .badge-unpaid { background: #ffebeb; color: #ff5b5b; padding: 4px 8px; border-radius: 10px; font-weight: 600; font-size: 11px; }
+        .btn-paid { background: #2b3674; color: white; border: none; padding: 5px 10px; border-radius: 15px; cursor: pointer; font-size: 11px; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Com Info – Admin Control</h1>
-        <a href="sign in.html" class="logout">Logout</a>
-    </header>
 
-    <main>
-        <div class="stats-grid">
-            <div class="stat-card blue">
-                <span class="label">Total Units</span>
-                <span class="value" id="statUnits">0 kWh</span>
+<header>
+    <div style="font-weight: 600;">Com Info - Admin</div>
+    <a href="sign in.html" style="color: white; text-decoration: none; font-size: 13px;">Logout</a>
+</header>
+
+<main>
+    <h2 style="margin-top: 0; margin-bottom: 20px;">Building Electricity Usage Report</h2>
+
+    <div class="filter-card">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>Period</label>
+                <select><option>ม.ค. 2569</option></select>
             </div>
-            <div class="stat-card orange">
-                <span class="label">Total Income</span>
-                <span class="value" id="statIncome">0 ฿</span>
+            <div class="filter-group">
+                <label>Year</label>
+                <select><option>2026</option></select>
             </div>
-            <div class="stat-card green">
-                <span class="label">PEA Cost</span>
-                <span class="value" id="statCost">0 ฿</span>
+            <div class="filter-group">
+                <label>Month</label>
+                <select><option>January</option></select>
             </div>
-            <div class="stat-card red">
-                <span class="label">Net Profit</span>
-                <span class="value" id="statProfit">0 ฿</span>
+            <div class="filter-group">
+                <label>Floor</label>
+                <select><option>All Floors</option></select>
             </div>
+            <button class="btn-apply">Apply Filter</button>
         </div>
-
-        <div class="content-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>All Rooms Status (สถานะทุกห้อง)</h2>
-                <button class="btn-primary" style="font-size: 0.8rem;" onclick="loadAllData()">Refresh Data</button>
+        <div class="filter-row" style="margin-top: 15px;">
+            <div class="filter-group">
+                <label>Utility Rate (฿/kWh)</label>
+                <input type="number" value="8" id="rateInput">
             </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ROOM</th>
-                            <th>TENANT NAME</th>
-                            <th>CURRENT (kWh)</th>
-                            <th>UNITS USED</th>
-                            <th>TOTAL (฿)</th>
-                            <th>STATUS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="allRoomsBody">
-                        <tr><td colspan="6">Loading data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <button class="btn-apply" style="background: #f4f7fe; color: #2b3674; border: 1px solid #e0e5f2;" onclick="loadAllData()">Recalculate</button>
         </div>
+    </div>
 
-        <div class="content-card">
-            <h2>Add Monthly Reading</h2>
-            <div class="filter-section">
-                <div class="filter-group">
-                    <label>Meter ID (Room)</label>
-                    <input type="number" id="meterIdInput" placeholder="e.g. 101">
-                </div>
-                <div class="filter-group">
-                    <label>Current Reading (kWh)</label>
-                    <input type="number" id="meterValInput" placeholder="e.g. 1250">
-                </div>
-                <button class="btn-primary" onclick="saveReading()">Save Reading</button>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-card bg-blue">
+            <span class="label">Total Rooms</span>
+            <span class="value" id="statRooms">37</span>
         </div>
-    </main>
+        <div class="stat-card bg-orange">
+            <span class="label">Total Units Used</span>
+            <span class="value" id="statUnits">0 kWh</span>
+        </div>
+        <div class="stat-card bg-green">
+            <span class="label">Total Revenue</span>
+            <span class="value" id="statIncome">0 ฿</span>
+        </div>
+        <div class="stat-card bg-red">
+            <span class="label">Total Profit</span>
+            <span class="value" id="statProfit">0 ฿</span>
+        </div>
+    </div>
 
-    <script>
-        const API_BASE = 'https://paosudlor-project.onrender.com';
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>FLOOR</th>
+                    <th>ROOM</th>
+                    <th>METER</th>
+                    <th>UNITS (kWh)</th>
+                    <th>TENANT COST (฿)</th>
+                    <th>FINE (฿)</th>
+                    <th>TOTAL (฿)</th>
+                    <th>PROVIDER COST (฿)</th>
+                    <th>PROFIT (฿)</th>
+                    <th>STATUS</th>
+                    <th>ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="allRoomsBody">
+                </tbody>
+        </table>
+    </div>
+</main>
 
-        async function fetchAdminSummary() {
-            try {
-                const resp = await fetch(`${API_BASE}/api/admin-report`);
-                const data = await resp.json();
-                
-                // อัปเดตตัวเลขในกล่อง Stats
-                document.getElementById('statUnits').innerText = `${(data.total_units || 0).toLocaleString()} kWh`;
-                document.getElementById('statIncome').innerText = `${(data.income_from_tenants || 0).toLocaleString()} ฿`;
-                document.getElementById('statCost').innerText = `${(data.cost_to_pea || 0).toLocaleString()} ฿`;
-                
-                const profitEl = document.getElementById('statProfit');
-                profitEl.innerText = `${(data.profit || 0).toLocaleString()} ฿`;
-                profitEl.className = 'value ' + (data.profit >= 0 ? 'profit-pos' : 'profit-neg');
+<script>
+    const API_BASE = 'https://paosudlor-project.onrender.com';
 
-            } catch (err) {
-                console.error("Summary error:", err);
-            }
+    async function loadAllData() {
+        try {
+            // ดึงข้อมูลรายงานสรุป
+            const reportResp = await fetch(`${API_BASE}/api/admin-report`);
+            const reportData = await reportResp.json();
+            
+            document.getElementById('statUnits').innerText = (reportData.total_units || 0).toLocaleString() + ' kWh';
+            document.getElementById('statIncome').innerText = (reportData.income_from_tenants || 0).toLocaleString() + ' ฿';
+            document.getElementById('statProfit').innerText = (reportData.profit || 0).toLocaleString() + ' ฿';
+
+            // ดึงข้อมูลรายห้อง
+            const roomsResp = await fetch(`${API_BASE}/api/admin-all-rooms`);
+            const roomsData = await roomsResp.json();
+            const tbody = document.getElementById('allRoomsBody');
+            tbody.innerHTML = '';
+
+            roomsData.forEach(room => {
+                const tr = document.createElement('tr');
+                const providerCost = room.units_used * 4.5; // ตัวอย่างค่าไฟ PEA 4.5 บาท
+                const tenantCost = room.units_used * 8;
+                const profit = tenantCost - providerCost;
+
+                tr.innerHTML = `
+                    <td>${room.room_number.toString().charAt(0)}</td>
+                    <td>${room.room_number}</td>
+                    <td>${room.room_number}</td>
+                    <td>${room.units_used}</td>
+                    <td>${tenantCost.toLocaleString()}</td>
+                    <td>0</td>
+                    <td>${tenantCost.toLocaleString()}</td>
+                    <td style="color:#a3aed0">${providerCost.toLocaleString()}</td>
+                    <td style="color:#4ecb71; font-weight:600">${profit.toLocaleString()}</td>
+                    <td><span class="badge-unpaid">Unpaid</span></td>
+                    <td><button class="btn-paid">Mark as Paid</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (err) {
+            console.error(err);
         }
+    }
 
-        async function fetchAllRooms() {
-            try {
-                const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
-                const data = await resp.json();
-                const tbody = document.getElementById('allRoomsBody');
-                tbody.innerHTML = '';
-
-                // รายชื่อห้อง UNPAID (จำลองตามโค้ดเดิม)
-                const unpaidRooms = ['102', '105', '110', '203'];
-
-                data.forEach(room => {
-                    const tr = document.createElement('tr');
-                    let statusHtml = '';
-                    
-                    if (room.tenant_name === 'ว่าง' || !room.tenant_name) {
-                        statusHtml = '<span class="status-empty">-</span>';
-                    } else if (unpaidRooms.includes(room.room_number)) {
-                        statusHtml = '<span class="badge badge-unpaid">UNPAID</span>';
-                    } else {
-                        statusHtml = '<span class="badge badge-paid">PAID</span>';
-                    }
-
-                    tr.innerHTML = `
-                        <td><strong>${room.room_number}</strong></td>
-                        <td>${room.tenant_name}</td>
-                        <td>${room.current_reading}</td>
-                        <td>${room.units_used}</td>
-                        <td>${(room.units_used * 8).toLocaleString()} ฿</td>
-                        <td>${statusHtml}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                document.getElementById('allRoomsBody').innerHTML = '<tr><td colspan="6" style="color:red;">Error loading data</td></tr>';
-            }
-        }
-
-        async function saveReading() {
-            const meterId = document.getElementById('meterIdInput').value;
-            const kwhValue = document.getElementById('meterValInput').value;
-
-            if(!meterId || !kwhValue) {
-                alert("กรุณากรอกข้อมูลให้ครบ!"); return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/api/add-meter`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ meterId, kwhValue })
-                });
-                const result = await response.json();
-                if(result.success) {
-                    alert("✅ บันทึกสำเร็จ!");
-                    document.getElementById('meterIdInput').value = '';
-                    document.getElementById('meterValInput').value = '';
-                    loadAllData();
-                } else {
-                    alert("❌ Error: " + result.error);
-                }
-            } catch(err) { alert("เชื่อมต่อ Server ไม่ได้"); }
-        }
-
-        function loadAllData() {
-            fetchAdminSummary();
-            fetchAllRooms();
-        }
-
-        window.onload = loadAllData;
-    </script>
+    window.onload = loadAllData;
+</script>
 </body>
 </html>
