@@ -51,7 +51,6 @@
             display: grid; grid-template-columns: 320px 1fr; gap: 25px; margin-bottom: 25px;
         }
 
-        /* Left Column */
         .side-card {
             background: var(--white); border-radius: 15px; padding: 20px; box-shadow: var(--shadow);
             margin-bottom: 20px;
@@ -73,7 +72,6 @@
         }
         .btn-pay:hover { background: #3450d1; }
 
-        /* Main Content (Chart) */
         .main-card {
             background: var(--white); border-radius: 15px; padding: 25px; box-shadow: var(--shadow);
         }
@@ -81,7 +79,6 @@
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
         }
 
-        /* Bottom Table */
         .table-card {
             background: var(--white); border-radius: 15px; padding: 20px; box-shadow: var(--shadow); overflow-x: auto;
         }
@@ -159,6 +156,7 @@
                 <h4>Usage Summary</h4>
                 <div style="font-size: 14px;">
                     <p>Year: <strong>2026</strong></p>
+                    <p>Electricity Rate: <strong style="color: #4361ee;">8.00 ฿/kWh</strong></p>
                     <p>Average / Month: <strong id="sideAvg">0 kWh</strong></p>
                 </div>
             </div>
@@ -189,7 +187,7 @@
                 </tr>
             </thead>
             <tbody id="usageTable">
-                </tbody>
+            </tbody>
         </table>
     </div>
 </main>
@@ -206,7 +204,6 @@
 <script>
     const API_BASE = 'https://paosudlor-project.onrender.com';
     const params = new URLSearchParams(window.location.search);
-    // กรณีไม่มี User ใน URL จะใช้ 101 เป็นตัวอย่าง
     const username = params.get('user') || '101'; 
 
     async function loadTenantData() {
@@ -214,28 +211,23 @@
             const resp = await fetch(`${API_BASE}/api/admin-all-rooms`);
             const allData = await resp.json();
             
-            // ค้นหาห้องที่ตรงกับเลขห้อง หรือ Username
             const myRoom = allData.find(r => r.room_number.toString() === username) || allData[0];
 
             if (myRoom) {
                 const units = Number(myRoom.units_used) || 0;
-                const cost = units * 8; // เรท 8 บาท
-                const endMeter = 178.00; // ตัวอย่างเลขอ่านปัจจุบัน
+                const cost = units * 8; 
+                const endMeter = 178.00; 
                 const startMeter = endMeter - units;
 
-                // อัปเดตข้อมูลบนหน้าจอ
                 document.getElementById('tenantHeaderName').innerText = "Room " + myRoom.room_number;
                 document.getElementById('sideName').innerText = "Room " + myRoom.room_number;
-                
                 document.getElementById('cardCost').innerText = cost.toLocaleString() + ' ฿';
                 document.getElementById('cardUnits').innerText = units.toLocaleString() + ' kWh';
-                
                 document.getElementById('prevMeter').innerText = startMeter.toFixed(2);
                 document.getElementById('currMeter').innerText = endMeter.toFixed(2);
                 document.getElementById('sideUnits').innerText = units.toFixed(2) + ' kWh';
                 document.getElementById('sideAvg').innerText = units.toFixed(2) + ' kWh';
 
-                // อัปเดตตาราง
                 const tbody = document.getElementById('usageTable');
                 tbody.innerHTML = `
                     <tr>
@@ -247,7 +239,6 @@
                     </tr>
                 `;
                 
-                // เติมเดือนอื่นๆ ให้ครบตาราง
                 const months = ["February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                 months.forEach(m => {
                     tbody.innerHTML += `<tr><td>${m} 2026</td><td>-</td><td>-</td><td>0</td><td>0 ฿</td></tr>`;
